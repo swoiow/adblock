@@ -26,6 +26,7 @@ func setup(c *caddy.Controller) error {
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
 		app.Next = next
 		app.filter = configs.filter
+		app.log = configs.log
 		return &app
 	})
 

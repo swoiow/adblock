@@ -21,6 +21,7 @@ type Adblock struct {
 	ResType string
 
 	filter bloom.BloomFilter
+	log    bool
 }
 
 func (app Adblock) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
@@ -48,11 +49,15 @@ func (app Adblock) Name() string { return pluginName }
 // if host in black list turn true else return false
 func handle(app Adblock, host string, w dns.ResponseWriter, r *dns.Msg) bool {
 	if !app.filter.TestString(host) {
-		log.Info(fmt.Sprintf("adblock not hint: '%v'", host))
+		if app.log {
+			log.Info(fmt.Sprintf("not hint: '%v'", host))
+		}
 		return false
 	}
 
-	log.Info(fmt.Sprintf("adblock hinted: '%v'", host))
+	if app.log {
+		log.Info(fmt.Sprintf("hinted: '%v'", host))
+	}
 
 	m := new(dns.Msg)
 	m.SetReply(r)
