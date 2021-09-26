@@ -1,2 +1,3 @@
 # adblock
-coredns plugin to block advertisement domain.
+coredns plugin to block domains.
+
