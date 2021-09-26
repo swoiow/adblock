@@ -16,14 +16,18 @@ import (
 type ListMap map[string]bool
 
 type Configs struct {
-	filter   bloom.BloomFilter
 	Capacity float64
 	Size     int
+
+	filter bloom.BloomFilter
+	log    bool
 }
 
 var DefaultConfigs = Configs{
 	Size:     500_000,
 	Capacity: 0.0005,
+
+	log: false,
 }
 
 func parseConfiguration(c *caddy.Controller) (*Configs, error) {
@@ -33,7 +37,11 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 
 	for c.NextBlock() {
 		value := c.Val()
+
 		switch value {
+		case "log":
+			configs.log = true
+			break
 		case "cache-data": //TODO
 			args := c.RemainingArgs()
 			err := ReadData(strings.TrimSpace(args[0]), filter)
@@ -74,6 +82,10 @@ func LoadDataByLocal(path string, filter *bloom.BloomFilter) error {
 	lines := strings.Split(string(contents), string('\n'))
 
 	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "#") && len(line) > 0 {
+			continue
+		}
 		filter.TestAndAddString(line)
 	}
 
@@ -90,6 +102,10 @@ func LoadDataByRemote(uri string, filter *bloom.BloomFilter) error {
 	}
 
 	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "#") && len(line) > 0 {
+			continue
+		}
 		filter.TestAndAddString(line)
 	}
 
