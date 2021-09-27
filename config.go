@@ -15,12 +15,12 @@ type Configs struct {
 	Capacity float64
 	Size     int
 
-	filter bloom.BloomFilter
+	filter *bloom.BloomFilter
 	log    bool
 }
 
 var DefaultConfigs = Configs{
-	Size:     200_000,
+	Size:     250_000,
 	Capacity: 0.0001,
 
 	log: false,
@@ -29,7 +29,7 @@ var DefaultConfigs = Configs{
 func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 	configs := DefaultConfigs
 	filter := bloom.NewWithEstimates(uint(configs.Size), configs.Capacity)
-	configs.filter = *filter
+	configs.filter = filter
 
 	for c.NextBlock() {
 		value := c.Val()
@@ -38,12 +38,14 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 		case "log":
 			configs.log = true
 			break
-		case "cache-data": //TODO
+		case "cache-data": //TODO:support http
 			args := c.RemainingArgs()
-			err := ReadData(strings.TrimSpace(args[0]), filter)
-
-			if err != nil {
-				return nil, err
+			inputString := strings.TrimSpace(args[0])
+			if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
+				strings.HasPrefix(strings.ToLower(inputString), "https://") {
+				_ = LoadCacheByRemote(inputString, filter)
+			} else {
+				_ = LoadCacheByLocal(inputString, filter)
 			}
 			break
 		case "black-list":
@@ -51,9 +53,9 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 			inputString := strings.TrimSpace(args[0])
 			if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
 				strings.HasPrefix(strings.ToLower(inputString), "https://") {
-				_ = LoadDataByRemote(inputString, filter)
+				_ = LoadRuleByRemote(inputString, filter)
 			} else {
-				_ = LoadDataByLocal(inputString, filter)
+				_ = LoadRuleByLocal(inputString, filter)
 			}
 			break
 		case "}":
@@ -65,7 +67,7 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 	return &configs, nil
 }
 
-func LoadDataByLocal(path string, filter *bloom.BloomFilter) error {
+func LoadRuleByLocal(path string, filter *bloom.BloomFilter) error {
 	file, err := os.Open(path)
 	if err != nil {
 		log.Error(err)
@@ -92,7 +94,7 @@ func LoadDataByLocal(path string, filter *bloom.BloomFilter) error {
 	return nil
 }
 
-func LoadDataByRemote(uri string, filter *bloom.BloomFilter) error {
+func LoadRuleByRemote(uri string, filter *bloom.BloomFilter) error {
 	lines, err := UrlToLines(uri)
 	if err != nil {
 		log.Error(err)
@@ -110,11 +112,27 @@ func LoadDataByRemote(uri string, filter *bloom.BloomFilter) error {
 		}
 	}
 
-	log.Info("Loaded rules:%v from `%s`.", counter, uri)
+	log.Infof("Loaded rules:%v from `%s`.", counter, uri)
 	return nil
 }
 
-func ReadData(path string, filter *bloom.BloomFilter) error {
+func LoadCacheByRemote(uri string, filter *bloom.BloomFilter) error {
+	resp, err := http.Get(uri)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	_, err = filter.ReadFrom(resp.Body)
+	if err != nil {
+		return err
+	}
+	log.Infof("Loaded cache from `%s`.", uri)
+
+	return nil
+}
+
+func LoadCacheByLocal(path string, filter *bloom.BloomFilter) error {
 	file, err := os.Open(path)
 	if err != nil {
 		return err
@@ -126,7 +144,7 @@ func ReadData(path string, filter *bloom.BloomFilter) error {
 		return err
 	}
 
-	log.Infof("Loaded about %v rules from filter.", filter.K())
+	log.Infof("Loaded cache from `%s`.", path)
 	return nil
 }
 

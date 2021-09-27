@@ -19,7 +19,7 @@ type Adblock struct {
 	Next    plugin.Handler
 	ResType string
 
-	filter bloom.BloomFilter
+	filter *bloom.BloomFilter
 	log    bool
 }
 
@@ -49,13 +49,13 @@ func (app Adblock) Name() string { return pluginName }
 func handle(app Adblock, host string, w dns.ResponseWriter, r *dns.Msg) bool {
 	if !app.filter.TestString(host) {
 		if app.log {
-			log.Infof("not hint: '%v'", host)
+			log.Infof("not hint: '%s'", host)
 		}
 		return false
 	}
 
 	if app.log {
-		log.Info("hinted: '%v'", host)
+		log.Infof("hinted: '%s'", host)
 	}
 
 	m := new(dns.Msg)

@@ -1,6 +1,6 @@
 # adblock
-coredns plugin to block domains.
 
+A coredns plugin to block domains.
 
 ## Usage
 
@@ -12,12 +12,13 @@ coredns plugin to block domains.
         # enable log, remove is disable
         log
         
-        # use cache file from local or remote
-        cache-data 
+        # (the last cache-data will be ues) load cache file from local or remote
+        cache-data https://example.com/rules.data
+        cache-data <AbsolutePath>/rules.data
         
         # load rules from local or remote
         black-list <AbsolutePath>/list.txt
-        black-list https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/reject-list.txt
+        black-list https://example.com/reject-list.txt
     }
 
     forward . 223.5.5.5:53
@@ -31,13 +32,14 @@ coredns plugin to block domains.
 
 ## Feature
 
-- 支持从Http加载域名
+- 支持从远端/本地加载规则
+- 支持从远端/本地加载缓存
 
 ## TODO
 
-- Github Action 创建缓存文件
-- 使用缓存文件
-- 增加response的报文类型
-- Cache最近的查询
-- expose过滤器的参数
+- [ ] Github Action 创建缓存文件
+- [x] 使用缓存文件
+- [ ] 增加response的报文类型
+- [ ] Cache最近的查询
+- [ ] expose过滤器的参数
 - 
