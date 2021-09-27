@@ -16,17 +16,18 @@ func init() {
 
 func setup(c *caddy.Controller) error {
 	c.Next()
-	configs, err := parseConfiguration(c)
+	runtimeConfigs, err := parseConfiguration(c)
 
 	if err != nil {
 		return err
 	}
 
-	app := Adblock{}
+	app := Adblock{Configs: runtimeConfigs}
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
 		app.Next = next
-		app.filter = configs.filter
-		app.log = configs.log
+		//app.filter = configs.filter
+		//app.log = configs.log
+		//app.resp_type = configs.resp_type
 		return &app
 	})
 

@@ -15,19 +15,21 @@ type Configs struct {
 	Capacity float64
 	Size     int
 
-	filter *bloom.BloomFilter
-	log    bool
+	filter   *bloom.BloomFilter
+	log      bool
+	respType string
 }
 
-var DefaultConfigs = Configs{
+var DefaultConfigs = &Configs{
 	Size:     250_000,
 	Capacity: 0.0001,
 
-	log: false,
+	log:      false,
+	respType: SOA,
 }
 
 func parseConfiguration(c *caddy.Controller) (*Configs, error) {
-	configs := DefaultConfigs
+	configs := *DefaultConfigs
 	filter := bloom.NewWithEstimates(uint(configs.Size), configs.Capacity)
 	configs.filter = filter
 
@@ -37,6 +39,21 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 		switch value {
 		case "log":
 			configs.log = true
+			break
+		case "resp_type":
+			args := c.RemainingArgs()
+			inputString := strings.TrimSpace(args[0])
+			switch strings.ToUpper(inputString) {
+			case ZERO:
+				configs.respType = ZERO
+				break
+			case HINFO:
+				configs.respType = HINFO
+				break
+			case NO_ANS:
+				configs.respType = NO_ANS
+				break
+			}
 			break
 		case "cache-data": //TODO:support http
 			args := c.RemainingArgs()
