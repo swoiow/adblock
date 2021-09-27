@@ -3,7 +3,6 @@ package adblock
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"github.com/bits-and-blooms/bloom"
 	"github.com/coredns/caddy"
 	"io"
@@ -125,7 +124,7 @@ func ReadData(path string, filter *bloom.BloomFilter) error {
 		return err
 	}
 
-	log.Info(fmt.Sprintf("Loaded about %v rules from filter.", filter.K()))
+	log.Infof("Loaded about %v rules from filter.", filter.K())
 	return nil
 }
 

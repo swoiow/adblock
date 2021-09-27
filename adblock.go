@@ -2,7 +2,6 @@ package adblock
 
 import (
 	"context"
-	"fmt"
 	"github.com/bits-and-blooms/bloom"
 	"github.com/coredns/coredns/plugin"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
@@ -50,13 +49,13 @@ func (app Adblock) Name() string { return pluginName }
 func handle(app Adblock, host string, w dns.ResponseWriter, r *dns.Msg) bool {
 	if !app.filter.TestString(host) {
 		if app.log {
-			log.Info(fmt.Sprintf("not hint: '%v'", host))
+			log.Infof("not hint: '%v'", host)
 		}
 		return false
 	}
 
 	if app.log {
-		log.Info(fmt.Sprintf("hinted: '%v'", host))
+		log.Info("hinted: '%v'", host)
 	}
 
 	m := new(dns.Msg)
