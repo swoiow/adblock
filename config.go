@@ -20,8 +20,8 @@ type Configs struct {
 }
 
 var DefaultConfigs = Configs{
-	Size:     500_000,
-	Capacity: 0.0005,
+	Size:     200_000,
+	Capacity: 0.0001,
 
 	log: false,
 }
