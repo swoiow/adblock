@@ -3,7 +3,6 @@ module github.com/swoiow/adblock
 go 1.17
 
 require (
-	github.com/bits-and-blooms/bloom v2.0.3+incompatible
 	github.com/bits-and-blooms/bloom/v3 v3.0.1
 	github.com/coredns/caddy v1.1.1
 	github.com/coredns/coredns v1.8.5

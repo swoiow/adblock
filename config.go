@@ -3,7 +3,7 @@ package adblock
 import (
 	"bufio"
 	"encoding/json"
-	"github.com/bits-and-blooms/bloom"
+	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/caddy"
 	"io"
 	"io/ioutil"
