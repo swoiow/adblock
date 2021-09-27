@@ -2,7 +2,6 @@ package adblock
 
 import (
 	"bufio"
-	"encoding/json"
 	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/caddy"
 	"io"
@@ -11,8 +10,6 @@ import (
 	"os"
 	"strings"
 )
-
-type ListMap map[string]bool
 
 type Configs struct {
 	Capacity float64
@@ -68,6 +65,18 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 	return &configs, nil
 }
 
+func add(filter *bloom.BloomFilter, lines []string, counter int) {
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "#") && len(line) > 0 {
+			continue
+		}
+		if !filter.TestAndAddString(line) {
+			counter += 1
+		}
+	}
+}
+
 func LoadDataByLocal(path string, filter *bloom.BloomFilter) error {
 	file, err := os.Open(path)
 	if err != nil {
@@ -76,39 +85,26 @@ func LoadDataByLocal(path string, filter *bloom.BloomFilter) error {
 	}
 	defer file.Close()
 
+	counter := 0
 	reader := bufio.NewReader(file)
 	contents, _ := ioutil.ReadAll(reader)
 	lines := strings.Split(string(contents), string('\n'))
+	add(filter, lines, counter)
 
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "#") && len(line) > 0 {
-			continue
-		}
-		filter.TestAndAddString(line)
-	}
-
-	log.Info("finished load data from local!")
+	log.Infof("Loaded rules:%v from `%s`!", counter, path)
 	return nil
 }
 
 func LoadDataByRemote(uri string, filter *bloom.BloomFilter) error {
-
 	lines, err := UrlToLines(uri)
 	if err != nil {
 		log.Error(err)
 		return err
 	}
+	counter := 0
+	add(filter, lines, counter)
 
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "#") && len(line) > 0 {
-			continue
-		}
-		filter.TestAndAddString(line)
-	}
-
-	log.Info("finished load data from remote!")
+	log.Info("Loaded rules:%v from `%s`", counter, uri)
 	return nil
 }
 
@@ -126,27 +122,6 @@ func ReadData(path string, filter *bloom.BloomFilter) error {
 
 	log.Infof("Loaded about %v rules from filter.", filter.K())
 	return nil
-}
-
-func ReadRuleSet(path string) (ListMap, error) {
-	file, err := os.OpenFile(path, os.O_RDONLY, 0666)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	plan, err := ioutil.ReadAll(file)
-	if err != nil {
-		return nil, err
-	}
-
-	var data ListMap
-	err = json.Unmarshal(plan, &data)
-	if err != nil {
-		return nil, err
-	}
-
-	return data, nil
 }
 
 func UrlToLines(url string) ([]string, error) {
