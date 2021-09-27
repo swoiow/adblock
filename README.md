@@ -9,6 +9,13 @@ coredns plugin to block domains.
     bind 127.0.0.1
 
     adblock {
+        # enable log, remove is disable
+        log
+        
+        # use cache file from local or remote
+        cache-data 
+        
+        # load rules from local or remote
         black-list <AbsolutePath>/list.txt
         black-list https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/reject-list.txt
     }
