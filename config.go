@@ -65,18 +65,6 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 	return &configs, nil
 }
 
-func add(filter *bloom.BloomFilter, lines []string, counter int) {
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "#") && len(line) > 0 {
-			continue
-		}
-		if !filter.TestAndAddString(line) {
-			counter += 1
-		}
-	}
-}
-
 func LoadDataByLocal(path string, filter *bloom.BloomFilter) error {
 	file, err := os.Open(path)
 	if err != nil {
@@ -88,10 +76,19 @@ func LoadDataByLocal(path string, filter *bloom.BloomFilter) error {
 	counter := 0
 	reader := bufio.NewReader(file)
 	contents, _ := ioutil.ReadAll(reader)
-	lines := strings.Split(string(contents), string('\n'))
-	add(filter, lines, counter)
 
-	log.Infof("Loaded rules:%v from `%s`!", counter, path)
+	lines := strings.Split(string(contents), string('\n'))
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "#") && len(line) > 0 {
+			continue
+		}
+		if !filter.TestAndAddString(line) {
+			counter += 1
+		}
+	}
+
+	log.Infof("Loaded rules:%v from `%s`.", counter, path)
 	return nil
 }
 
@@ -101,10 +98,19 @@ func LoadDataByRemote(uri string, filter *bloom.BloomFilter) error {
 		log.Error(err)
 		return err
 	}
-	counter := 0
-	add(filter, lines, counter)
 
-	log.Info("Loaded rules:%v from `%s`", counter, uri)
+	counter := 0
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "#") && len(line) > 0 {
+			continue
+		}
+		if !filter.TestAndAddString(line) {
+			counter += 1
+		}
+	}
+
+	log.Info("Loaded rules:%v from `%s`.", counter, uri)
 	return nil
 }
 
