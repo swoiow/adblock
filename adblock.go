@@ -7,6 +7,7 @@ import (
 	"github.com/miekg/dns"
 	"net"
 	"strings"
+	"time"
 )
 
 var log = clog.NewWithPlugin(pluginName)
@@ -36,17 +37,21 @@ func (app Adblock) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 	}
 
 	// measure time spent
-	//start := time.Now()
+	start := time.Now()
 
 	// https://github.com/AdguardTeam/AdGuardDNS/blob/c2344850dabe23ce50d446b0f78d8a099fb03dfd/dnsfilter/dnsfilter.go#L156
 	host := strings.ToLower(strings.TrimSuffix(question.Name, "."))
 
 	isBlock := handle(app, host, question, w, r)
-	//log.Info("query block at: ", time.Since(start).Seconds())
-
 	if isBlock {
+		if app.Configs.log {
+			log.Infof("hinted: '%s' - spent: %s", host, time.Since(start))
+		}
 		return dns.RcodeSuccess, nil
 	} else {
+		if app.Configs.log {
+			log.Infof("not hint: '%s'", host)
+		}
 		return plugin.NextOrFailure(pluginName, app.Next, ctx, w, r)
 	}
 }
@@ -58,14 +63,7 @@ func (app Adblock) Name() string { return pluginName }
 // if host in black list return true else return false
 func handle(app Adblock, host string, q dns.Question, w dns.ResponseWriter, r *dns.Msg) bool {
 	if !app.Configs.filter.TestString(host) {
-		if app.Configs.log {
-			log.Infof("not hint: '%s'", host)
-		}
 		return false
-	}
-
-	if app.Configs.log {
-		log.Infof("hinted: '%s'", host)
 	}
 
 	m := new(dns.Msg)
@@ -127,10 +125,6 @@ func handle(app Adblock, host string, q dns.Question, w dns.ResponseWriter, r *d
 		break
 	}
 
-	err := w.WriteMsg(m)
-	if err != nil {
-		log.Error(err)
-		return false
-	}
+	w.WriteMsg(m)
 	return true
 }
