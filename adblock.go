@@ -17,18 +17,15 @@ const (
 	HINFO  = "HINFO"
 	ZERO   = "ZERO"
 
-	HOUR = 3600
-	DAY  = 24 * HOUR
-	YEAR = 365 * DAY
+	MINUTE = 60
+	HOUR   = 60 * MINUTE
+	DAY    = 24 * HOUR
 )
 
 type Adblock struct {
 	Next plugin.Handler
 
 	Configs *Configs
-	//filter    *bloom.BloomFilter
-	//resp_type string
-	//log       bool
 }
 
 func (app Adblock) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
@@ -58,7 +55,7 @@ func (app Adblock) Name() string { return pluginName }
 
 // ====== Plugin logic below
 
-// if host in black list turn true else return false
+// if host in black list return true else return false
 func handle(app Adblock, host string, q dns.Question, w dns.ResponseWriter, r *dns.Msg) bool {
 	if !app.Configs.filter.TestString(host) {
 		if app.Configs.log {
@@ -83,13 +80,13 @@ func handle(app Adblock, host string, q dns.Question, w dns.ResponseWriter, r *d
 		soa := new(dns.SOA)
 		soa.Mbox = "query.blocked."
 		soa.Ns = "a.root-servers.net."
-		soa.Serial = 1 //  ASCII:837965
-		soa.Refresh = 7 * DAY
+		soa.Serial = 1
+		soa.Refresh = DAY
 		soa.Minttl = HOUR
 		soa.Expire = DAY
 		soa.Retry = 300
 
-		headers := dns.RR_Header{Name: q.Name, Ttl: 60, Class: dns.ClassINET, Rrtype: dns.TypeSOA}
+		headers := dns.RR_Header{Name: q.Name, Ttl: HOUR, Class: dns.ClassINET, Rrtype: dns.TypeSOA}
 		soa.Hdr = headers
 		m.Ns = []dns.RR{soa}
 		break
@@ -102,7 +99,7 @@ func handle(app Adblock, host string, q dns.Question, w dns.ResponseWriter, r *d
 		hinfo.Cpu = "query blocked"
 		hinfo.Os = "add the domain to white list to avoid"
 
-		hinfo.Hdr = dns.RR_Header{Name: q.Name, Ttl: 24 * HOUR, Class: dns.ClassINET, Rrtype: dns.TypeHINFO}
+		hinfo.Hdr = dns.RR_Header{Name: q.Name, Ttl: HOUR, Class: dns.ClassINET, Rrtype: dns.TypeHINFO}
 		m.Answer = []dns.RR{hinfo}
 		break
 
@@ -110,12 +107,12 @@ func handle(app Adblock, host string, q dns.Question, w dns.ResponseWriter, r *d
 		switch q.Qtype {
 		case dns.TypeA:
 			respIpv4 := new(dns.A)
-			respIpv4.Hdr = dns.RR_Header{Name: q.Name, Ttl: 24 * HOUR, Class: dns.ClassINET, Rrtype: dns.TypeA}
+			respIpv4.Hdr = dns.RR_Header{Name: q.Name, Ttl: HOUR, Class: dns.ClassINET, Rrtype: dns.TypeA}
 			respIpv4.A = net.IPv4zero
 			m.Answer = []dns.RR{respIpv4}
 		case dns.TypeAAAA:
 			respIpv6 := new(dns.AAAA)
-			respIpv6.Hdr = dns.RR_Header{Name: q.Name, Ttl: 24 * HOUR, Class: dns.ClassINET, Rrtype: dns.TypeAAAA}
+			respIpv6.Hdr = dns.RR_Header{Name: q.Name, Ttl: HOUR, Class: dns.ClassINET, Rrtype: dns.TypeAAAA}
 			respIpv6.AAAA = net.IPv6zero
 			m.Answer = []dns.RR{respIpv6}
 		}
