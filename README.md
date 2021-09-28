@@ -9,6 +9,9 @@ A coredns plugin to block domains.
     bind 127.0.0.1
 
     adblock {
+        # bloom filter capacity & rate. default: 250_000 0.0001
+        size_rate 250_000 0.0001
+    
         # enable log, remove is disable
         log
         
@@ -50,5 +53,6 @@ A coredns plugin to block domains.
 - [x] 使用缓存文件
 - [x] 增加response的报文类型
 - [ ] Cache最近的查询
-- [ ] expose过滤器的参数
+- [x] expose过滤器的参数
+- [ ] 增加white-list
 - 

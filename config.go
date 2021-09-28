@@ -4,16 +4,18 @@ import (
 	"bufio"
 	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/caddy"
+	"github.com/coredns/coredns/plugin"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
 type Configs struct {
-	Capacity float64
-	Size     int
+	Size int
+	Rate float64
 
 	filter   *bloom.BloomFilter
 	log      bool
@@ -21,8 +23,8 @@ type Configs struct {
 }
 
 var DefaultConfigs = &Configs{
-	Size:     250_000,
-	Capacity: 0.0001,
+	Size: 250_000,
+	Rate: 0.0001,
 
 	log:      false,
 	respType: SOA,
@@ -30,13 +32,30 @@ var DefaultConfigs = &Configs{
 
 func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 	configs := *DefaultConfigs
-	filter := bloom.NewWithEstimates(uint(configs.Size), configs.Capacity)
+	filter := bloom.NewWithEstimates(uint(configs.Size), configs.Rate)
 	configs.filter = filter
 
 	for c.NextBlock() {
 		value := c.Val()
 
 		switch value {
+		case "size_rate":
+			args := c.RemainingArgs()
+			switch len(args) {
+			case 1:
+				size, err := strconv.Atoi(args[0])
+				if err != nil {
+					return nil, plugin.Error(pluginName, c.Errf("pares size error: %s", err))
+				}
+				configs.Size = size
+			case 2:
+				rate, err := strconv.ParseFloat(args[1], 32)
+				if err != nil {
+					return nil, plugin.Error(pluginName, c.Errf("pares capacity error: %s", err))
+				}
+				configs.Rate = rate
+			}
+			break
 		case "log":
 			configs.log = true
 			break
@@ -55,7 +74,7 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 				break
 			}
 			break
-		case "cache-data": //TODO:support http
+		case "cache-data":
 			args := c.RemainingArgs()
 			inputString := strings.TrimSpace(args[0])
 			if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
