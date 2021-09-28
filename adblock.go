@@ -42,6 +42,10 @@ func (app Adblock) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 	// https://github.com/AdguardTeam/AdGuardDNS/blob/c2344850dabe23ce50d446b0f78d8a099fb03dfd/dnsfilter/dnsfilter.go#L156
 	host := strings.ToLower(strings.TrimSuffix(question.Name, "."))
 
+	if app.Configs.whiteList[host] {
+		return plugin.NextOrFailure(pluginName, app.Next, ctx, w, r)
+	}
+
 	isBlock := handle(app, host, question, w, r)
 	if isBlock {
 		if app.Configs.log {

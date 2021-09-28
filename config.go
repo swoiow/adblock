@@ -17,9 +17,10 @@ type Configs struct {
 	Size int
 	Rate float64
 
-	filter   *bloom.BloomFilter
-	log      bool
-	respType string
+	filter    *bloom.BloomFilter
+	whiteList map[string]bool
+	log       bool
+	respType  string
 }
 
 var DefaultConfigs = &Configs{
@@ -32,8 +33,8 @@ var DefaultConfigs = &Configs{
 
 func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 	configs := *DefaultConfigs
-	filter := bloom.NewWithEstimates(uint(configs.Size), configs.Rate)
-	configs.filter = filter
+	configs.filter = bloom.NewWithEstimates(uint(configs.Size), configs.Rate)
+	configs.whiteList = make(map[string]bool)
 
 	for c.NextBlock() {
 		value := c.Val()
@@ -79,9 +80,9 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 			inputString := strings.TrimSpace(args[0])
 			if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
 				strings.HasPrefix(strings.ToLower(inputString), "https://") {
-				_ = LoadCacheByRemote(inputString, filter)
+				_ = LoadCacheByRemote(inputString, configs.filter)
 			} else {
-				_ = LoadCacheByLocal(inputString, filter)
+				_ = LoadCacheByLocal(inputString, configs.filter)
 			}
 			break
 		case "black-list":
@@ -89,9 +90,23 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 			inputString := strings.TrimSpace(args[0])
 			if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
 				strings.HasPrefix(strings.ToLower(inputString), "https://") {
-				_ = LoadRuleByRemote(inputString, filter)
+				_ = LoadRuleByRemote(inputString, configs.filter)
 			} else {
-				_ = LoadRuleByLocal(inputString, filter)
+				_ = LoadRuleByLocal(inputString, configs.filter)
+			}
+			break
+		case "white-list":
+			args := c.RemainingArgs()
+			inputString := strings.TrimSpace(args[0])
+			var lines []string
+			if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
+				strings.HasPrefix(strings.ToLower(inputString), "https://") {
+				lines, _ = UrlToLines(inputString)
+			} else {
+				lines, _ = FileToLines(inputString)
+			}
+			for i := 0; i < len(lines); i++ {
+				configs.whiteList[lines[i]] = true
 			}
 			break
 		case "}":
@@ -104,15 +119,15 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 }
 
 func LoadRuleByLocal(path string, filter *bloom.BloomFilter) error {
-	file, err := os.Open(path)
+	rf, err := os.Open(path)
 	if err != nil {
 		log.Error(err)
 		return err
 	}
-	defer file.Close()
+	defer rf.Close()
 
-	counter := 0
-	reader := bufio.NewReader(file)
+	c := 0
+	reader := bufio.NewReader(rf)
 	contents, _ := ioutil.ReadAll(reader)
 
 	lines := strings.Split(string(contents), string('\n'))
@@ -122,11 +137,11 @@ func LoadRuleByLocal(path string, filter *bloom.BloomFilter) error {
 			continue
 		}
 		if !filter.TestAndAddString(line) {
-			counter += 1
+			c += 1
 		}
 	}
 
-	log.Infof("Loaded rules:%v from `%s`.", counter, path)
+	log.Infof("Loaded rules:%v from `%s`.", c, path)
 	return nil
 }
 
@@ -137,18 +152,18 @@ func LoadRuleByRemote(uri string, filter *bloom.BloomFilter) error {
 		return err
 	}
 
-	counter := 0
+	c := 0
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "#") && len(line) > 0 {
 			continue
 		}
 		if !filter.TestAndAddString(line) {
-			counter += 1
+			c += 1
 		}
 	}
 
-	log.Infof("Loaded rules:%v from `%s`.", counter, uri)
+	log.Infof("Loaded rules:%v from `%s`.", c, uri)
 	return nil
 }
 
@@ -169,19 +184,28 @@ func LoadCacheByRemote(uri string, filter *bloom.BloomFilter) error {
 }
 
 func LoadCacheByLocal(path string, filter *bloom.BloomFilter) error {
-	file, err := os.Open(path)
+	rf, err := os.Open(path)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer rf.Close()
 
-	_, err = filter.ReadFrom(file)
+	_, err = filter.ReadFrom(rf)
 	if err != nil {
 		return err
 	}
 
 	log.Infof("Loaded cache from `%s`.", path)
 	return nil
+}
+
+func FileToLines(path string) ([]string, error) {
+	rf, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer rf.Close()
+	return LinesFromReader(rf)
 }
 
 func UrlToLines(url string) ([]string, error) {
