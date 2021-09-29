@@ -19,16 +19,16 @@ A coredns plugin to block domains.
         resp_type zero
         
         # (the last cache-data will be ues) load cache file from local or remote
-        cache-data https://example.com/rules.data
-        cache-data <AbsolutePath>/rules.data
+        cache_data https://example.com/rules.data
+        cache_data <AbsolutePath>/rules.data
         
         # black list to block query, load rules from local or remote
-        black-list <AbsolutePath>/list.txt
-        black-list https://example.com/reject-list.txt
+        black_list <AbsolutePath>/list.txt
+        black_list https://example.com/reject-list.txt
         
         # white list to disable block
-        white-list <AbsolutePath>/white-list.txt
-        white-list https://example.com/white-list.txt
+        white_list <AbsolutePath>/white-list.txt
+        white_list https://example.com/white-list.txt
     }
 
     forward . 223.5.5.5:53
@@ -44,7 +44,6 @@ A coredns plugin to block domains.
 
 - 支持从远端/本地加载规则
 - 支持从远端/本地加载缓存
-
 + 支持多种屏蔽的返回报文
   - `SOA`
   - `HINFO`
@@ -58,5 +57,5 @@ A coredns plugin to block domains.
 - [x] 增加response的报文类型
 - [ ] Cache最近的查询
 - [x] expose过滤器的参数
-- [x] 增加white-list
-- 
+- [x] 增加white_list
+- [ ] 

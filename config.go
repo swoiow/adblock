@@ -75,7 +75,7 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 				break
 			}
 			break
-		case "cache-data":
+		case "cache_data":
 			args := c.RemainingArgs()
 			inputString := strings.TrimSpace(args[0])
 			if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
@@ -85,7 +85,7 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 				_ = LoadCacheByLocal(inputString, configs.filter)
 			}
 			break
-		case "black-list":
+		case "black_list":
 			args := c.RemainingArgs()
 			inputString := strings.TrimSpace(args[0])
 			if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
@@ -95,7 +95,7 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 				_ = LoadRuleByLocal(inputString, configs.filter)
 			}
 			break
-		case "white-list":
+		case "white_list":
 			args := c.RemainingArgs()
 			inputString := strings.TrimSpace(args[0])
 			var lines []string
