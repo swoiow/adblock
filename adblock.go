@@ -12,27 +12,13 @@ import (
 
 var log = clog.NewWithPlugin(pluginName)
 
-const (
-	NO_ANS = "NO-ANS"
-	SOA    = "SOA"
-	HINFO  = "HINFO"
-	ZERO   = "ZERO"
-
-	MINUTE = 60
-	HOUR   = 60 * MINUTE
-	DAY    = 24 * HOUR
-)
-
-type Adblock struct {
-	Next plugin.Handler
-
-	Configs *Configs
-}
-
 func (app Adblock) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	question := r.Question[0]
 
-	if question.Qtype != dns.TypeA && question.Qtype != dns.TypeAAAA {
+	if app.Configs.blockQtype[question.Qtype] {
+		postRefused(r, w)
+		return dns.RcodeSuccess, nil
+	} else if question.Qtype != dns.TypeA && question.Qtype != dns.TypeAAAA {
 		return plugin.NextOrFailure(pluginName, app.Next, ctx, w, r)
 	}
 
@@ -131,4 +117,15 @@ func handle(app Adblock, host string, q dns.Question, w dns.ResponseWriter, r *d
 
 	w.WriteMsg(m)
 	return true
+}
+
+func postRefused(r *dns.Msg, w dns.ResponseWriter) {
+	m := new(dns.Msg)
+	m.SetReply(r)
+	m.Authoritative = false
+	m.RecursionAvailable = true
+	m.Answer, m.Ns, m.Extra = nil, nil, nil
+	m.Rcode = dns.RcodeRefused
+
+	w.WriteMsg(m)
 }

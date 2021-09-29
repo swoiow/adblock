@@ -15,6 +15,9 @@ A coredns plugin to block domains.
         # enable log, remove is disable
         log
         
+        # block_query_type, return REFUSED
+        block_qtype A AAAA HTTPS MX PTR SRV CNAME
+        
         # blocked_query_response, soa is default. Options: soa / zero / hinfo / no-ans
         resp_type zero
         
@@ -44,11 +47,20 @@ A coredns plugin to block domains.
 
 - 支持从远端/本地加载规则
 - 支持从远端/本地加载缓存
+
 + 支持多种屏蔽的返回报文
   - `SOA`
   - `HINFO`
   - `ZERO`
   - `No-Ans`
++ 支持屏蔽指定类型查询
+  - `A`
+  - `AAAA`
+  - `MX`
+  - `HTTPS`
+  - `PTR`
+  - `SRV`
+  - `CNAME`
 
 ## TODO
 
@@ -58,4 +70,5 @@ A coredns plugin to block domains.
 - [ ] Cache最近的查询
 - [x] expose过滤器的参数
 - [x] 增加white_list
+- [x] 屏蔽指定类型的dns查询
 - [ ] 

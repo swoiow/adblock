@@ -13,28 +13,19 @@ import (
 	"strings"
 )
 
-type Configs struct {
-	Size int
-	Rate float64
-
-	filter    *bloom.BloomFilter
-	whiteList map[string]bool
-	log       bool
-	respType  string
-}
-
 var DefaultConfigs = &Configs{
 	Size: 250_000,
 	Rate: 0.0001,
 
-	log:      false,
-	respType: SOA,
+	log:        false,
+	whiteList:  make(map[string]bool),
+	respType:   SOA,
+	blockQtype: make(map[uint16]bool, 10),
 }
 
 func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 	configs := *DefaultConfigs
 	configs.filter = bloom.NewWithEstimates(uint(configs.Size), configs.Rate)
-	configs.whiteList = make(map[string]bool)
 
 	for c.NextBlock() {
 		value := c.Val()
@@ -59,6 +50,15 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 			break
 		case "log":
 			configs.log = true
+			break
+		case "block_qtype":
+			args := c.RemainingArgs()
+			for ix := 0; ix < len(args); ix++ {
+				qtype := args[ix]
+				if val, ok := blockQueryType[strings.ToUpper(qtype)]; ok {
+					configs.blockQtype[val] = true
+				}
+			}
 			break
 		case "resp_type":
 			args := c.RemainingArgs()
