@@ -106,7 +106,7 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 				lines, _ = FileToLines(inputString)
 			}
 			for i := 0; i < len(lines); i++ {
-				configs.whiteList[lines[i]] = true
+				configs.whiteList[strings.ToLower(strings.TrimSpace(lines[i]))] = true
 			}
 			break
 		case "}":
