@@ -133,7 +133,7 @@ func LoadRuleByLocal(path string, filter *bloom.BloomFilter) error {
 	lines := strings.Split(string(contents), string('\n'))
 	for _, line := range lines {
 		line = strings.ToLower(strings.TrimSpace(line))
-		if strings.HasPrefix(line, "#") && len(line) > 0 {
+		if strings.HasPrefix(line, "#") || len(line) <= 3 || len(line) > 64 {
 			continue
 		}
 		if !filter.TestAndAddString(line) {
@@ -155,7 +155,7 @@ func LoadRuleByRemote(uri string, filter *bloom.BloomFilter) error {
 	c := 0
 	for _, line := range lines {
 		line = strings.ToLower(strings.TrimSpace(line))
-		if strings.HasPrefix(line, "#") && len(line) > 0 {
+		if strings.HasPrefix(line, "#") || len(line) <= 3 || len(line) > 64 {
 			continue
 		}
 		if !filter.TestAndAddString(line) {
