@@ -1,4 +1,4 @@
-# adblock
+# adblock [![.github/workflows/go-build.yml](https://github.com/swoiow/adblock/actions/workflows/go-build.yml/badge.svg)](https://github.com/swoiow/adblock/actions/workflows/go-build.yml)
 
 A coredns plugin to block domains.
 
@@ -65,6 +65,7 @@ A coredns plugin to block domains.
 ## TODO
 
 - [ ] Github Action 创建缓存文件
+- [x] Github Action 创建bin文件
 - [x] 使用缓存文件
 - [x] 增加response的报文类型
 - [ ] Cache最近的查询

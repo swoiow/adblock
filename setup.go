@@ -11,6 +11,8 @@ func init() {
 }
 
 func setup(c *caddy.Controller) error {
+	log.Infof("Initializing, %s: v%s", pluginName, pluginVers)
+
 	c.Next()
 	runtimeConfigs, err := parseConfiguration(c)
 	if err != nil {

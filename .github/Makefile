@@ -1,3 +1,5 @@
+CURRENT_DATE=$(date +%Y_%m_%d)
+
 fetch_rules:
 	curl "https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/reject-list.txt" > rules1.txt
 	curl "https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/anti-ad-domains.txt" > rules2.txt
@@ -17,3 +19,30 @@ fetch_rules:
 
 clean:
 	rm -rf *.txt
+
+generate:
+	go generate
+
+build_osx: generate
+	GO111MODULE=auto \
+	CGO_ENABLED=0 \
+	GOOS=darwin \
+	GOARCH=amd64 \
+	go build -ldflags "-s -w -X github.com/coredns/coredns/coremain.GitCommit=${CURRENT_DATE}" -o coredns_osx
+	zip -9 coredns_darwin_amd64.zip coredns_osx
+
+build_arm: generate
+	GO111MODULE=auto \
+	CGO_ENABLED=0 \
+	GOOS=linux \
+	GOARCH=arm64 \
+	go build -ldflags "-s -w -X github.com/coredns/coredns/coremain.GitCommit=${CURRENT_DATE}" -o coredns_arm
+	zip -9 coredns_linux_arm64.zip coredns_arm
+
+build_amd: generate
+	GO111MODULE=auto \
+	CGO_ENABLED=0 \
+	GOOS=linux \
+	GOARCH=amd64 \
+	go build -ldflags "-s -w -X github.com/coredns/coredns/coremain.GitCommit=${CURRENT_DATE}" -o coredns_amd
+	zip -9 coredns_linux_amd64.zip coredns_amd
