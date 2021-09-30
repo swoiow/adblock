@@ -47,12 +47,13 @@ A coredns plugin to block domains.
 
 - 支持从远端/本地加载规则
 - 支持从远端/本地加载缓存
-
 + 支持多种屏蔽的返回报文
   - `SOA`
   - `HINFO`
   - `ZERO`
   - `No-Ans`
+  - `NX`
+  - `REFUSED`
 + 支持屏蔽指定类型查询
   - `A`
   - `AAAA`

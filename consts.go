@@ -7,15 +7,41 @@ import (
 )
 
 const (
-	NO_ANS = "NO-ANS"
-	SOA    = "SOA"
-	HINFO  = "HINFO"
-	ZERO   = "ZERO"
-
 	MINUTE = 60
 	HOUR   = 60 * MINUTE
 	DAY    = 24 * HOUR
+
+	/*
+	 * respType: using by switch logic
+	 */
+	NO_ANS  = 1
+	SOA     = 2
+	HINFO   = 3
+	ZERO    = 4
+	NX      = 5
+	REFUSED = 6
 )
+
+// define: respType, using by configmap
+var respTypeEnum = map[string]int8{
+	"NO_ANS":  1,
+	"SOA":     2,
+	"HINFO":   3,
+	"ZERO":    4,
+	"NX":      5, // Non-Existent Domain
+	"REFUSED": 6, // Query Refused
+}
+
+// define: blockQtype
+var blockQueryType = map[string]uint16{
+	"A":     dns.TypeA,
+	"AAAA":  dns.TypeAAAA,
+	"MX":    dns.TypeMX,
+	"HTTPS": dns.TypeHTTPS,
+	"PTR":   dns.TypePTR,
+	"SRV":   dns.TypeSRV,
+	"CNAME": dns.TypeCNAME,
+}
 
 type Adblock struct {
 	Next    plugin.Handler
@@ -29,16 +55,6 @@ type Configs struct {
 	log        bool
 	filter     *bloom.BloomFilter
 	whiteList  map[string]bool
-	respType   string
+	respType   int8
 	blockQtype map[uint16]bool
-}
-
-var blockQueryType = map[string]uint16{
-	"A":     dns.TypeA,
-	"AAAA":  dns.TypeAAAA,
-	"MX":    dns.TypeMX,
-	"HTTPS": dns.TypeHTTPS,
-	"PTR":   dns.TypePTR,
-	"SRV":   dns.TypeSRV,
-	"CNAME": dns.TypeCNAME,
 }

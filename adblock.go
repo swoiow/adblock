@@ -106,7 +106,17 @@ func handle(app Adblock, host string, q dns.Question, w dns.ResponseWriter, r *d
 		}
 		break
 
+	case REFUSED:
+		m.Answer, m.Ns, m.Extra = nil, nil, nil
+		m.Rcode = dns.RcodeRefused
+		break
+
 	case NO_ANS:
+		m.Answer, m.Ns, m.Extra = nil, nil, nil
+		m.Rcode = dns.RcodeSuccess
+		break
+
+	case NX:
 	default:
 		/* no ANSWER is default
 		 */

@@ -63,16 +63,8 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 		case "resp_type":
 			args := c.RemainingArgs()
 			inputString := strings.TrimSpace(args[0])
-			switch strings.ToUpper(inputString) {
-			case ZERO:
-				configs.respType = ZERO
-				break
-			case HINFO:
-				configs.respType = HINFO
-				break
-			case NO_ANS:
-				configs.respType = NO_ANS
-				break
+			if val, ok := respTypeEnum[strings.ToUpper(inputString)]; ok {
+				configs.respType = val
 			}
 			break
 		case "cache_data":
