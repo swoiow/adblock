@@ -46,7 +46,8 @@ jobs:
           export stableTag=$(../gr "coredns/coredns")
           git checkout $stableTag
           cp -f ../.github/plugin.cfg plugin.cfg
-          go get github.com/swoiow/adblock@wip-v0.0.6
+          export stableTag=$(../gr "swoiow/adblock")
+          go get github.com/swoiow/adblock
           go get github.com/leiless/dnsredir
 
       - name: Set up Go
