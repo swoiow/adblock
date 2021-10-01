@@ -1,0 +1,47 @@
+name: Build Bin
+
+on:
+  push:
+    branches:
+      - 'release/**'
+      - 'feat/**'
+
+    tags:
+      - v*
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Build
+        run: |
+          make build-image build-bin
+
+      #      - name: Upload Darwin Adm64
+      #        uses: actions/upload-artifact@v2
+      #        with:
+      #          name: coredns_darwin_amd64.zip
+      #          path: dist/coredns_osx
+      #          if-no-files-found: error
+      #          retention-days: 90
+
+      - name: Upload Linux Arm64
+        uses: actions/upload-artifact@v2
+        with:
+          name: coredns_linux_arm64.zip
+          path: dist/coredns_arm
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Upload Linux Amd64
+        uses: actions/upload-artifact@v2
+        with:
+          name: coredns_linux_amd64.zip
+          path: dist/coredns_amd
+          if-no-files-found: error
+          retention-days: 90

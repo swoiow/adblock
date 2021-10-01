@@ -14,13 +14,14 @@ import (
 )
 
 var DefaultConfigs = &Configs{
-	Size: 250_000,
-	Rate: 0.0001,
+	Size: 300_000,
+	Rate: 0.01,
 
 	log:        false,
-	whiteList:  make(map[string]bool),
 	respType:   SOA,
 	blockQtype: make(map[uint16]bool, 10),
+
+	whiteListMode: false,
 }
 
 func parseConfiguration(c *caddy.Controller) (*Configs, error) {
@@ -97,9 +98,16 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 			} else {
 				lines, _ = FileToLines(inputString)
 			}
-			for i := 0; i < len(lines); i++ {
-				configs.whiteList[strings.ToLower(strings.TrimSpace(lines[i]))] = true
+
+			if len(lines) > 0 {
+				if !configs.whiteListMode {
+					configs.whiteListMode = true
+					configs.whiteList = bloom.NewWithEstimates(100_000, 0.01)
+					log.Info("enable white mode")
+				}
+				addLines2filter(lines, configs.whiteList)
 			}
+
 			break
 		case "}":
 		case "{":
@@ -110,19 +118,8 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 	return &configs, nil
 }
 
-func LoadRuleByLocal(path string, filter *bloom.BloomFilter) error {
-	rf, err := os.Open(path)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-	defer rf.Close()
-
+func addLines2filter(lines []string, filter *bloom.BloomFilter) (int, *bloom.BloomFilter) {
 	c := 0
-	reader := bufio.NewReader(rf)
-	contents, _ := ioutil.ReadAll(reader)
-
-	lines := strings.Split(string(contents), string('\n'))
 	for _, line := range lines {
 		line = strings.ToLower(strings.TrimSpace(line))
 		if strings.HasPrefix(line, "#") || len(line) <= 3 || len(line) > 64 {
@@ -132,7 +129,21 @@ func LoadRuleByLocal(path string, filter *bloom.BloomFilter) error {
 			c += 1
 		}
 	}
+	return c, filter
+}
 
+func LoadRuleByLocal(path string, filter *bloom.BloomFilter) error {
+	rf, err := os.Open(path)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	defer rf.Close()
+
+	reader := bufio.NewReader(rf)
+	contents, _ := ioutil.ReadAll(reader)
+	lines := strings.Split(string(contents), string('\n'))
+	c, _ := addLines2filter(lines, filter)
 	log.Infof("Loaded rules:%v from `%s`.", c, path)
 	return nil
 }
@@ -143,18 +154,7 @@ func LoadRuleByRemote(uri string, filter *bloom.BloomFilter) error {
 		log.Error(err)
 		return err
 	}
-
-	c := 0
-	for _, line := range lines {
-		line = strings.ToLower(strings.TrimSpace(line))
-		if strings.HasPrefix(line, "#") || len(line) <= 3 || len(line) > 64 {
-			continue
-		}
-		if !filter.TestAndAddString(line) {
-			c += 1
-		}
-	}
-
+	c, _ := addLines2filter(lines, filter)
 	log.Infof("Loaded rules:%v from `%s`.", c, uri)
 	return nil
 }

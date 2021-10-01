@@ -54,7 +54,9 @@ type Configs struct {
 
 	log        bool
 	filter     *bloom.BloomFilter
-	whiteList  map[string]bool
 	respType   int8
 	blockQtype map[uint16]bool
+
+	whiteListMode bool
+	whiteList     *bloom.BloomFilter
 }

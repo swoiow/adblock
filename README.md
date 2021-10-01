@@ -1,4 +1,4 @@
-# adblock [![.github/workflows/go-build.yml](https://github.com/swoiow/adblock/actions/workflows/go-build.yml/badge.svg)](https://github.com/swoiow/adblock/actions/workflows/go-build.yml)
+# adblock [![Build Ruleset](https://github.com/swoiow/adblock/actions/workflows/build-ruleset.yml/badge.svg)](https://github.com/swoiow/adblock/actions/workflows/build-ruleset.yml)
 
 A coredns plugin to block domains.
 
@@ -9,8 +9,8 @@ A coredns plugin to block domains.
     bind 127.0.0.1
 
     adblock {
-        # bloom filter capacity & rate. default: 250_000 0.0001
-        size_rate 250_000 0.0001
+        # bloom filter capacity & rate. default: 300_000 0.01
+        size_rate 300_000 0.01
     
         # enable log, remove is disable
         log
@@ -65,7 +65,7 @@ A coredns plugin to block domains.
 
 ## TODO
 
-- [ ] Github Action 创建缓存文件
+- [x] Github Action 创建缓存文件
 - [x] Github Action 创建bin文件
 - [x] 使用缓存文件
 - [x] 增加response的报文类型
@@ -73,4 +73,6 @@ A coredns plugin to block domains.
 - [x] expose过滤器的参数
 - [x] 增加white_list
 - [x] 屏蔽指定类型的dns查询
-- [ ] 
+- [ ] 引入AdGuard的过滤器
+- [ ] 支持泛域名(需要考虑n级域名的问题)
+- [ ]

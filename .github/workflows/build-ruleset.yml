@@ -1,0 +1,62 @@
+name: Build Ruleset
+
+on:
+  schedule:
+    - cron: "00 3 * * 5"
+
+  push:
+    branches:
+      - 'release/**'
+
+    tags:
+      - v*
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cache go mod
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-4test
+
+
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v2.2.2
+        with:
+          python-version: '3.9'
+          architecture: x64
+      - run: |
+          cd .github
+          python elt.py
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+
+      - name: Get dependence
+        run: |
+          go get
+
+      - name: Test
+        run: go test ./...
+
+      - name: Upload Ruleset
+        uses: actions/upload-artifact@v2
+        with:
+          name: rules.dat
+          path: rules.dat
+          if-no-files-found: error
+          retention-days: 7
