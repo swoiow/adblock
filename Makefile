@@ -1,5 +1,6 @@
 CURRENT_DATE:=$(shell date +%Y_%m_%d)
 
+
 clean:
 	rm -rf ./.github/*.txt ./.github/rules/*.* ./.github/raw/*.*
 

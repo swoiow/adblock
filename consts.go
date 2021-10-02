@@ -22,6 +22,11 @@ const (
 	REFUSED = 6
 )
 
+const (
+	qLogFmt    = "%s: '%s' - spent: %s"
+	loadLogFmt = "Loaded %s(%v) from `%s`."
+)
+
 // define: respType, using by configmap
 var respTypeEnum = map[string]int8{
 	"NO_ANS":  1,

@@ -35,12 +35,12 @@ func (app Adblock) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 	isBlock := handle(app, host, question, w, r)
 	if isBlock {
 		if app.Configs.log {
-			log.Infof("hinted: '%s' - spent: %s", host, time.Since(start))
+			log.Infof(qLogFmt, "hinted", host, time.Since(start))
 		}
 		return dns.RcodeSuccess, nil
 	} else {
 		if app.Configs.log {
-			log.Infof("not hint: '%s'", host)
+			log.Infof(qLogFmt, "not hint", host, time.Since(start))
 		}
 		return plugin.NextOrFailure(pluginName, app.Next, ctx, w, r)
 	}

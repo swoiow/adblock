@@ -3,8 +3,8 @@ name: Build Bin
 on:
   push:
     branches:
-      - 'release/**'
-      - 'feat/**'
+#      - 'release/**'
+      - 'wip/**'
 
     tags:
       - v*

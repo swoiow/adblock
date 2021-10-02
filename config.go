@@ -103,7 +103,7 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 				if !configs.whiteListMode {
 					configs.whiteListMode = true
 					configs.whiteList = bloom.NewWithEstimates(100_000, 0.01)
-					log.Info("enable white mode")
+					log.Info("WhiteList mode is enabled")
 				}
 				addLines2filter(lines, configs.whiteList)
 			}
@@ -144,7 +144,8 @@ func LoadRuleByLocal(path string, filter *bloom.BloomFilter) error {
 	contents, _ := ioutil.ReadAll(reader)
 	lines := strings.Split(string(contents), string('\n'))
 	c, _ := addLines2filter(lines, filter)
-	log.Infof("Loaded rules:%v from `%s`.", c, path)
+
+	log.Infof(loadLogFmt, "rules", c, path)
 	return nil
 }
 
@@ -155,7 +156,7 @@ func LoadRuleByRemote(uri string, filter *bloom.BloomFilter) error {
 		return err
 	}
 	c, _ := addLines2filter(lines, filter)
-	log.Infof("Loaded rules:%v from `%s`.", c, uri)
+	log.Infof(loadLogFmt, "rules", c, uri)
 	return nil
 }
 
@@ -170,7 +171,7 @@ func LoadCacheByRemote(uri string, filter *bloom.BloomFilter) error {
 	if err != nil {
 		return err
 	}
-	log.Infof("Loaded cache from `%s`.", uri)
+	log.Infof(loadLogFmt, "cache", "-", uri)
 
 	return nil
 }
@@ -187,7 +188,7 @@ func LoadCacheByLocal(path string, filter *bloom.BloomFilter) error {
 		return err
 	}
 
-	log.Infof("Loaded cache from `%s`.", path)
+	log.Infof(loadLogFmt, "cache", "-", path)
 	return nil
 }
 
