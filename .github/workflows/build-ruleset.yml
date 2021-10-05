@@ -32,14 +32,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Python
-        uses: actions/setup-python@v2.2.2
-        with:
-          python-version: '3.9'
-          architecture: x64
-      - run: |
-          cd .github
-          python elt.py
+      #      - name: Setup Python
+      #        uses: actions/setup-python@v2.2.2
+      #        with:
+      #          python-version: '3.9'
+      #          architecture: x64
+      #      - run: |
+      #          cd .github
+      #          python etl.py
 
       - name: Set up Go
         uses: actions/setup-go@v2
@@ -49,6 +49,7 @@ jobs:
       - name: Get dependence
         run: |
           go get
+          go run .github/etl.go
 
       - name: Test
         run: go test ./...

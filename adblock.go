@@ -3,6 +3,7 @@ package adblock
 import (
 	"context"
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/metrics"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/miekg/dns"
 	"net"
@@ -37,11 +38,13 @@ func (app Adblock) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 		if app.Configs.log {
 			log.Infof(qLogFmt, "hinted", host, time.Since(start))
 		}
+		hintedCount.WithLabelValues(metrics.WithServer(ctx)).Inc()
 		return dns.RcodeSuccess, nil
 	} else {
 		if app.Configs.log {
 			log.Infof(qLogFmt, "not hint", host, time.Since(start))
 		}
+		missesCount.WithLabelValues(metrics.WithServer(ctx)).Inc()
 		return plugin.NextOrFailure(pluginName, app.Next, ctx, w, r)
 	}
 }

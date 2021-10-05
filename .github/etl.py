@@ -3,6 +3,7 @@ import os
 import urllib.request
 import uuid
 
+
 rules_fp = "raw"
 ruleset = set()
 
@@ -22,9 +23,9 @@ def handle_lines(lines):
         line = line.lower().strip()
 
         if not line.startswith("#") and \
-                not line.startswith("::1") and \
-                64 > len(line) > 3 or \
-                line.endswith("reject"):
+            not line.startswith("::1") and \
+            64 > len(line) > 3 or \
+            line.endswith("reject"):
 
             if "," in line:
                 kw, domain, action = line.split(",")
@@ -32,12 +33,16 @@ def handle_lines(lines):
                 domain = line
 
             domain = domain.strip()
+            if domain.startswith(_rule_127):
+                domain = domain.replace(_rule_127, "")
+            else:
+                domain = domain.replace(_rule_zero, "")
+
             if domain.startswith("."):
                 domain = domain[1:]
             if domain.endswith(".") or domain.endswith("/"):
                 domain = domain[:-1]
-            if domain.startswith(_rule_zero) or domain.startswith(_rule_127):
-                domain = domain.replace(_rule_zero, "").replace(_rule_127, "")
+
             domain = domain.strip()
 
             # add to ruleset

@@ -1,4 +1,4 @@
-name: Build Bin
+name: RELEASE
 
 on:
   push:
@@ -18,9 +18,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Get dependence
+        run: |
+          go get
+          go run .github/etl.go
+
+      - name: Test
+        run: go test ./...
+
       - name: Build
         run: |
           make build-image build-bin
+          zip ruleset.zip rules.dat
 
       #      - name: Upload Darwin Adm64
       #        uses: actions/upload-artifact@v2
@@ -45,3 +54,22 @@ jobs:
           path: dist/coredns_amd
           if-no-files-found: error
           retention-days: 90
+
+      - name: Upload Windows x64
+        uses: actions/upload-artifact@v2
+        with:
+          name: coredns_x64.zip
+          path: dist/coredns_x64.exe
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          #          name: "latest"
+          #          draft: true
+          #          prerelease: true
+          files: |
+            ruleset.zip
+            dist/coredns_*.zip

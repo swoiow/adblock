@@ -1,4 +1,4 @@
-# adblock [![Build Ruleset](https://github.com/swoiow/adblock/actions/workflows/build-ruleset.yml/badge.svg)](https://github.com/swoiow/adblock/actions/workflows/build-ruleset.yml)
+# adblock [![RELEASE](https://github.com/swoiow/adblock/actions/workflows/build-bin.yml/badge.svg)](https://github.com/swoiow/adblock/actions/workflows/build-bin.yml)
 
 A coredns plugin to block domains.
 
@@ -6,7 +6,13 @@ A coredns plugin to block domains.
 
 ```
 .:1053 {
+    errors
     bind 127.0.0.1
+    forward . 223.5.5.5:53
+
+    log . {
+        class all
+    }
 
     adblock {
         # bloom filter capacity & rate. default: 300_000 0.01
@@ -25,21 +31,16 @@ A coredns plugin to block domains.
         cache_data https://example.com/rules.data
         cache_data <AbsolutePath>/rules.data
         
-        # black list to block query, load rules from local or remote
+        # black list to block query, load rules from local or remote.
+        # use local+ will disable the domain means allow any line exclude comment
         black_list <AbsolutePath>/list.txt
+        black_list local+<AbsolutePath>/list.txt
         black_list https://example.com/reject-list.txt
         
         # white list to disable block
         white_list <AbsolutePath>/white-list.txt
         white_list https://example.com/white-list.txt
     }
-
-    forward . 223.5.5.5:53
-    log . {
-        class all
-    }
-
-    errors
 }
 ```
 
@@ -62,6 +63,11 @@ A coredns plugin to block domains.
   - `PTR`
   - `SRV`
   - `CNAME`
++ 支持多种格式的规则文件
+  - `hosts` - `HostParser`
+  - `surge` - `SurgeParser`
+  - `dnsmasq` - `DnsmasqParser`
+  - `domain` - `DomainParser`
 
 ## TODO
 

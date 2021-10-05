@@ -24,7 +24,12 @@ const (
 
 const (
 	qLogFmt    = "%s: '%s' - spent: %s"
-	loadLogFmt = "Loaded %s(%v) from `%s`."
+	loadLogFmt = "Loaded %s (num:%v) from `%s`."
+)
+
+const (
+	domainMinLength = 3
+	domainMaxLength = 63
 )
 
 // define: respType, using by configmap

@@ -5,6 +5,7 @@ import (
 	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/caddy"
 	"github.com/coredns/coredns/plugin"
+	"github.com/swoiow/adblock/parsers"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -42,6 +43,11 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 				}
 				configs.Size = size
 			case 2:
+				size, err := strconv.Atoi(args[0])
+				if err != nil {
+					return nil, plugin.Error(pluginName, c.Errf("pares size error: %s", err))
+				}
+				configs.Size = size
 				rate, err := strconv.ParseFloat(args[1], 32)
 				if err != nil {
 					return nil, plugin.Error(pluginName, c.Errf("pares capacity error: %s", err))
@@ -81,22 +87,32 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 		case "black_list":
 			args := c.RemainingArgs()
 			inputString := strings.TrimSpace(args[0])
+
+			strictMode := true
+			if strings.HasPrefix(strings.ToLower(inputString), "local+") {
+				strictMode = false
+				inputString = strings.TrimPrefix(inputString, "local+")
+			}
+
 			if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
 				strings.HasPrefix(strings.ToLower(inputString), "https://") {
 				_ = LoadRuleByRemote(inputString, configs.filter)
 			} else {
-				_ = LoadRuleByLocal(inputString, configs.filter)
+				_ = LoadRuleByLocal(inputString, configs.filter, strictMode)
 			}
 			break
 		case "white_list":
 			args := c.RemainingArgs()
 			inputString := strings.TrimSpace(args[0])
+
+			minLen := domainMinLength
 			var lines []string
 			if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
 				strings.HasPrefix(strings.ToLower(inputString), "https://") {
 				lines, _ = UrlToLines(inputString)
 			} else {
 				lines, _ = FileToLines(inputString)
+				minLen = 1
 			}
 
 			if len(lines) > 0 {
@@ -105,7 +121,8 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 					configs.whiteList = bloom.NewWithEstimates(100_000, 0.01)
 					log.Info("WhiteList mode is enabled")
 				}
-				addLines2filter(lines, configs.whiteList)
+
+				addLines2filter(parsers.Parser(lines, parsers.DomainParser, minLen), configs.whiteList)
 			}
 
 			break
@@ -118,21 +135,21 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 	return &configs, nil
 }
 
+/*
+*   Utils
+ */
+
 func addLines2filter(lines []string, filter *bloom.BloomFilter) (int, *bloom.BloomFilter) {
 	c := 0
 	for _, line := range lines {
-		line = strings.ToLower(strings.TrimSpace(line))
-		if strings.HasPrefix(line, "#") || len(line) <= 3 || len(line) > 64 {
-			continue
-		}
-		if !filter.TestAndAddString(line) {
+		if !filter.TestAndAddString(strings.ToLower(strings.TrimSpace(line))) {
 			c += 1
 		}
 	}
 	return c, filter
 }
 
-func LoadRuleByLocal(path string, filter *bloom.BloomFilter) error {
+func LoadRuleByLocal(path string, filter *bloom.BloomFilter, strictMode bool) error {
 	rf, err := os.Open(path)
 	if err != nil {
 		log.Error(err)
@@ -143,6 +160,12 @@ func LoadRuleByLocal(path string, filter *bloom.BloomFilter) error {
 	reader := bufio.NewReader(rf)
 	contents, _ := ioutil.ReadAll(reader)
 	lines := strings.Split(string(contents), string('\n'))
+
+	if strictMode {
+		lines = parsers.FuzzyParser(lines, 1)
+	} else {
+		lines = parsers.Parser(lines, parsers.DomainParser, 1)
+	}
 	c, _ := addLines2filter(lines, filter)
 
 	log.Infof(loadLogFmt, "rules", c, path)
@@ -155,6 +178,9 @@ func LoadRuleByRemote(uri string, filter *bloom.BloomFilter) error {
 		log.Error(err)
 		return err
 	}
+
+	// handle by parsers
+	lines = parsers.FuzzyParser(lines, domainMinLength)
 	c, _ := addLines2filter(lines, filter)
 	log.Infof(loadLogFmt, "rules", c, uri)
 	return nil
@@ -171,7 +197,7 @@ func LoadCacheByRemote(uri string, filter *bloom.BloomFilter) error {
 	if err != nil {
 		return err
 	}
-	log.Infof(loadLogFmt, "cache", "-", uri)
+	log.Infof(loadLogFmt, "cache", "*", uri)
 
 	return nil
 }
@@ -188,7 +214,7 @@ func LoadCacheByLocal(path string, filter *bloom.BloomFilter) error {
 		return err
 	}
 
-	log.Infof(loadLogFmt, "cache", "-", path)
+	log.Infof(loadLogFmt, "cache", "*", path)
 	return nil
 }
 

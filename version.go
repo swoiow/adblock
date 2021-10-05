@@ -2,5 +2,5 @@ package adblock
 
 const (
 	pluginName = "adblock"
-	pluginVers = "0.1.0"
+	pluginVers = "0.2.0"
 )

@@ -3,6 +3,7 @@ package adblock
 import (
 	"fmt"
 	"github.com/bits-and-blooms/bloom/v3"
+	"github.com/swoiow/adblock/parsers"
 	"os"
 	"strings"
 	"testing"
@@ -14,6 +15,8 @@ const (
 )
 
 func TestCreateCache(t *testing.T) {
+	t.Skip()
+
 	rules := &[]string{
 		rulesetPath,
 	}
@@ -21,7 +24,7 @@ func TestCreateCache(t *testing.T) {
 	filter := bloom.NewWithEstimates(uint(DefaultConfigs.Size), DefaultConfigs.Rate)
 
 	for _, rule := range *rules {
-		_ = LoadRuleByLocal(rule, filter)
+		_ = LoadRuleByLocal(rule, filter, false)
 	}
 
 	wFile, err := os.Create(rulesetData)
@@ -35,30 +38,49 @@ func TestCreateCache(t *testing.T) {
 	fmt.Printf("Saved %v about %v rules from filter.", num, filter.K())
 }
 
-func TestCache(t *testing.T) {
+func TestCacheByLocal(t *testing.T) {
 	filter := bloom.NewWithEstimates(uint(DefaultConfigs.Size), DefaultConfigs.Rate)
 
-	file, err := os.Open(rulesetData)
+	err := LoadCacheByLocal(rulesetData, filter)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		panic(err)
 	}
-	defer file.Close()
-
-	_, err = filter.ReadFrom(file)
 
 	type rule struct {
 		name   string
 		result bool
 	}
 
-	var items []rule
+	var items = []rule{
+		{name: "baidu.com", result: false},
+		{name: "reddit.com", result: false},
+	}
+
+	for _, tt := range items {
+		t.Run(tt.name, func(t *testing.T) {
+			if resp := filter.TestString(tt.name); resp != tt.result {
+				t.Errorf("TestCache failed %v", tt.name)
+			}
+		})
+	}
+}
+
+func TestCacheByFile(t *testing.T) {
+	filter := bloom.NewWithEstimates(uint(DefaultConfigs.Size), DefaultConfigs.Rate)
+
+	err := LoadCacheByLocal(rulesetData, filter)
+	if err != nil {
+		panic(err)
+	}
+
+	type rule struct {
+		name   string
+		result bool
+	}
+	var items = []rule{}
 	lines, _ := FileToLines(rulesetPath)
-	for _, line := range lines {
-		line = strings.ToLower(strings.TrimSpace(line))
-		if strings.HasPrefix(line, "#") || len(line) <= 3 || len(line) > 64 {
-			continue
-		}
+
+	for _, line := range parsers.Parser(lines, parsers.DomainParser, domainMinLength) {
 		items = append(items, rule{name: strings.ToLower(line), result: true})
 	}
 
