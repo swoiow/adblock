@@ -14,19 +14,21 @@ import (
 	"strings"
 )
 
-var DefaultConfigs = &Configs{
-	Size: 300_000,
-	Rate: 0.01,
+func DefaultConfigs() *Configs {
+	return &Configs{
+		Size: 300_000,
+		Rate: 0.01,
 
-	log:        false,
-	respType:   SOA,
-	blockQtype: make(map[uint16]bool, 10),
+		log:        false,
+		respType:   SOA,
+		blockQtype: make(map[uint16]bool, 10),
 
-	whiteListMode: false,
+		whiteListMode: false,
+	}
 }
 
 func parseConfiguration(c *caddy.Controller) (*Configs, error) {
-	configs := *DefaultConfigs
+	configs := *DefaultConfigs()
 	configs.filter = bloom.NewWithEstimates(uint(configs.Size), configs.Rate)
 
 	for c.NextBlock() {

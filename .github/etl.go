@@ -56,9 +56,11 @@ func fetchUrls() []string {
 }
 
 func createRuleset(rules []string) {
+	defaultConfigs := blocked.DefaultConfigs()
+
 	ruleset := []string{}
 	number := 0
-	filter := bloom.NewWithEstimates(uint(blocked.DefaultConfigs.Size), blocked.DefaultConfigs.Rate)
+	filter := bloom.NewWithEstimates(uint(defaultConfigs.Size), defaultConfigs.Rate)
 	for _, ruleUrl := range rules {
 		lines, err := blocked.UrlToLines(ruleUrl)
 		if err != nil {
