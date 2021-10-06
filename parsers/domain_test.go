@@ -7,6 +7,9 @@ func TestDomainParser(t *testing.T) {
 		domain string
 		expect bool
 	}{
+		{domain: "", expect: false},
+		{domain: "http://example.com", expect: false},
+
 		{domain: "example.com\r", expect: true},
 		{domain: "example.com\n", expect: true},
 		{domain: "example.com\r\n", expect: true},
@@ -16,7 +19,7 @@ func TestDomainParser(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run("tt_"+tt.domain, func(t *testing.T) {
-			got, _ := ParserSingle(tt.domain, DomainParser, 1)
+			got, _ := Parse(tt.domain, DomainParser)
 			if got != tt.expect {
 				t.Errorf("parser() got = %v, want %v", got, tt.expect)
 			}

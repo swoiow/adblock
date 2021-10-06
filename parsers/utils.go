@@ -1,18 +1,33 @@
 package parsers
 
-import "strings"
+import (
+	"reflect"
+	"runtime"
+	"strings"
+)
 
-func IsCommentOrEmptyLine(l string) bool {
-	l = strings.TrimSpace(l)
-	return strings.HasPrefix(l, "#") || len(l) == 0
+func isCommentOrEmptyLine(s string) bool {
+	return strings.HasPrefix(s, "#") || len(s) == 0
 }
 
-func IsDomainNamePlus(s string, minLen int) bool {
-	if !IsCommentOrEmptyLine(s) && len(s) < minLen {
+func getFunctionName(i interface{}) string {
+	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+}
+
+func IsCommentOrEmptyLine(s string) bool {
+	return isCommentOrEmptyLine(strings.TrimSpace(s))
+}
+
+func IsDomainNamePlus(s string, minLen int, verify bool, strict bool) bool {
+	s = strings.TrimSpace(s)
+	if len(s) < minLen {
+		return false
+	} else if strict && !strings.Contains(s, ".") {
+		return false
+	} else if verify && !IsDomainName(s) {
 		return false
 	}
-
-	return IsDomainName(s)
+	return true
 }
 
 func IsDomainName(s string) bool {

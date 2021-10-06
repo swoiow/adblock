@@ -8,6 +8,9 @@ func TestHostParser(t *testing.T) {
 		domain string
 		expect bool
 	}{
+		{domain: "", expect: false},
+		{domain: "http://example.com", expect: false},
+
 		{domain: "# 0.0.0.0 example.com", expect: false},
 		{domain: "# 127.0.0.1 example.com", expect: false},
 		{domain: "0.0.0.0 0.0.0.0", expect: false},
@@ -31,10 +34,13 @@ func TestHostParser(t *testing.T) {
 		{domain: "127.0.0.1 .xy.", expect: true},
 		{domain: "127.0.0.1 _", expect: true},
 		{domain: "127.0.0.1 1-1-1-aaa.com", expect: true},
+
+		{domain: " 127.0.0.1 .example.com.", expect: true},
+		{domain: "	127.0.0.1 .example.com.", expect: true},
 	}
 	for _, tt := range tests {
 		t.Run("tt_"+tt.domain, func(t *testing.T) {
-			got, _ := ParserSingle(tt.domain, HostParser, 1)
+			got, _ := Parse(tt.domain, HostParser)
 			if got != tt.expect {
 				t.Errorf("parser() got = %v, want %v", got, tt.expect)
 			}

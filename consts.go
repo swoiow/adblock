@@ -3,7 +3,6 @@ package adblock
 import (
 	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/coredns/plugin"
-	"github.com/miekg/dns"
 )
 
 const (
@@ -40,17 +39,6 @@ var respTypeEnum = map[string]int8{
 	"ZERO":    4,
 	"NX":      5, // Non-Existent Domain
 	"REFUSED": 6, // Query Refused
-}
-
-// define: blockQtype
-var blockQueryType = map[string]uint16{
-	"A":     dns.TypeA,
-	"AAAA":  dns.TypeAAAA,
-	"MX":    dns.TypeMX,
-	"HTTPS": dns.TypeHTTPS,
-	"PTR":   dns.TypePTR,
-	"SRV":   dns.TypeSRV,
-	"CNAME": dns.TypeCNAME,
 }
 
 type Adblock struct {

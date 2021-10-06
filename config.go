@@ -5,6 +5,7 @@ import (
 	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/caddy"
 	"github.com/coredns/coredns/plugin"
+	"github.com/miekg/dns"
 	"github.com/swoiow/adblock/parsers"
 	"io"
 	"io/ioutil"
@@ -59,22 +60,31 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 			break
 		case "log":
 			configs.log = true
+			log.Info("[runtimeConfigs] log is enabled")
 			break
 		case "block_qtype":
+			var enabled []string
 			args := c.RemainingArgs()
 			for ix := 0; ix < len(args); ix++ {
 				qtype := args[ix]
-				if val, ok := blockQueryType[strings.ToUpper(qtype)]; ok {
+				val := dns.StringToType[strings.ToUpper(qtype)]
+				if val != 0 {
 					configs.blockQtype[val] = true
+					enabled = append(enabled, strings.ToUpper(qtype))
 				}
 			}
+			log.Infof("[runtimeConfigs] block_qtype: %s", enabled)
 			break
 		case "resp_type":
+			var enabled string
+
 			args := c.RemainingArgs()
 			inputString := strings.TrimSpace(args[0])
 			if val, ok := respTypeEnum[strings.ToUpper(inputString)]; ok {
 				configs.respType = val
+				enabled = strings.ToUpper(inputString)
 			}
+			log.Infof("[runtimeConfigs] resp_type: %s", enabled)
 			break
 		case "cache_data":
 			args := c.RemainingArgs()
@@ -121,10 +131,10 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 				if !configs.whiteListMode {
 					configs.whiteListMode = true
 					configs.whiteList = bloom.NewWithEstimates(100_000, 0.01)
-					log.Info("WhiteList mode is enabled")
+					log.Info("[runtimeConfigs] WhiteList mode is enabled")
 				}
 
-				addLines2filter(parsers.Parser(lines, parsers.DomainParser, minLen), configs.whiteList)
+				addLines2filter(parsers.LooseParser(lines, parsers.DomainParser, minLen), configs.whiteList)
 			}
 
 			break
@@ -166,7 +176,7 @@ func LoadRuleByLocal(path string, filter *bloom.BloomFilter, strictMode bool) er
 	if strictMode {
 		lines = parsers.FuzzyParser(lines, 1)
 	} else {
-		lines = parsers.Parser(lines, parsers.DomainParser, 1)
+		lines = parsers.LooseParser(lines, parsers.DomainParser, 1)
 	}
 	c, _ := addLines2filter(lines, filter)
 

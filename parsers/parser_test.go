@@ -45,3 +45,29 @@ func TestFuzzyParser(t *testing.T) {
 		}
 	})
 }
+
+func TestLooseParser(t *testing.T) {
+	type args struct {
+		lines  []string
+		engine func(d string) string
+		minLen int
+	}
+
+	testcase := []struct {
+		args args
+		want []string
+	}{
+		{
+			args: args{lines: []string{"https://example.com"}, engine: DomainParser, minLen: 1},
+			want: []string{"https://example.com"},
+		},
+	}
+
+	for _, tt := range testcase {
+		t.Run("", func(t *testing.T) {
+			if got := LooseParser(tt.args.lines, tt.args.engine, tt.args.minLen); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("LooseParser() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

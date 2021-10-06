@@ -9,15 +9,21 @@ func TestDnsmasqParser(t *testing.T) {
 		domain string
 		expect bool
 	}{
+		{domain: "", expect: false},
+		{domain: "http://example.com", expect: false},
+
 		{domain: "# server=/example.com/1.1.1.1", expect: false},
 		{domain: "server=/example.com/1.1.1.1", expect: true},
 		{domain: "server=/example.com/", expect: true},
 		{domain: "server=/example.com /", expect: true},
 		{domain: "server=/example.com / ", expect: true},
+
+		{domain: " server=/example.com / ", expect: true},
+		{domain: "	server=/example.com / ", expect: true},
 	}
 	for _, tt := range tests {
 		t.Run("tt_"+tt.domain, func(t *testing.T) {
-			result, domain := ParserSingle(tt.domain, DnsmasqParser, 1)
+			result, domain := Parse(tt.domain, DnsmasqParser)
 			if result != tt.expect {
 				t.Errorf("parser() got = %v, want %v", result, tt.expect)
 			} else {

@@ -82,8 +82,9 @@ func TestCacheByFile(t *testing.T) {
 	var items = []rule{}
 	lines, _ := FileToLines(rulesetPath)
 
-	for _, line := range parsers.Parser(lines, parsers.DomainParser, domainMinLength) {
-		items = append(items, rule{name: strings.ToLower(line), result: true})
+	for _, line := range lines {
+		result, domain := parsers.Parse(line, parsers.DomainParser)
+		items = append(items, rule{name: strings.ToLower(domain), result: result})
 	}
 
 	for _, tt := range items {

@@ -56,13 +56,7 @@ A coredns plugin to block domains.
   - `NX`
   - `REFUSED`
 + 支持屏蔽指定类型查询
-  - `A`
-  - `AAAA`
-  - `MX`
-  - `HTTPS`
-  - `PTR`
-  - `SRV`
-  - `CNAME`
+  - [List_of_DNS_record_types](https://en.wikipedia.org/wiki/List_of_DNS_record_types)
 + 支持多种格式的规则文件
   - `hosts` - `HostParser`
   - `surge` - `SurgeParser`
