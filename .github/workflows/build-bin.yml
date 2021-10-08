@@ -3,7 +3,8 @@ name: RELEASE
 on:
   push:
     branches:
-#      - 'release/**'
+      - 'main'
+      - 'release/**'
       - 'wip/**'
 
     tags:
@@ -29,7 +30,6 @@ jobs:
       - name: Build
         run: |
           make build-image build-bin
-          zip ruleset.zip rules.dat
 
       #      - name: Upload Darwin Adm64
       #        uses: actions/upload-artifact@v2
@@ -71,5 +71,5 @@ jobs:
           #          draft: true
           #          prerelease: true
           files: |
-            ruleset.zip
+            rules.dat
             dist/coredns_*.zip

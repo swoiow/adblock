@@ -1,4 +1,4 @@
-package adblock
+package blocked
 
 import (
 	"github.com/coredns/caddy"
@@ -19,7 +19,7 @@ func setup(c *caddy.Controller) error {
 		return err
 	}
 
-	app := Adblock{Configs: runtimeConfigs}
+	app := Blocked{Configs: runtimeConfigs}
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
 		app.Next = next
 		return &app

@@ -76,7 +76,7 @@ def download_rules(url):
 
 
 def fetch_rules():
-    url = "https://api.github.com/repos/swoiow/adblock/issues/comments/932148163"
+    url = "https://api.github.com/repos/swoiow/blocked/issues/comments/932148163"
 
     c = urllib.request.urlopen(url)
     data = c.read()

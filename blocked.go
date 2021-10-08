@@ -1,4 +1,4 @@
-package adblock
+package blocked
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 
 var log = clog.NewWithPlugin(pluginName)
 
-func (app Adblock) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+func (app Blocked) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	question := r.Question[0]
 
 	if app.Configs.blockQtype[question.Qtype] {
@@ -49,12 +49,12 @@ func (app Adblock) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 	}
 }
 
-func (app Adblock) Name() string { return pluginName }
+func (app Blocked) Name() string { return pluginName }
 
 // ====== Plugin logic below
 
 // if host in black list return true else return false
-func handle(app Adblock, host string, q dns.Question, w dns.ResponseWriter, r *dns.Msg) bool {
+func handle(app Blocked, host string, q dns.Question, w dns.ResponseWriter, r *dns.Msg) bool {
 	if !app.Configs.filter.TestString(host) {
 		return false
 	}

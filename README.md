@@ -1,6 +1,6 @@
-# adblock [![RELEASE](https://github.com/swoiow/adblock/actions/workflows/build-bin.yml/badge.svg)](https://github.com/swoiow/adblock/actions/workflows/build-bin.yml)
+# blocked [![RELEASE](https://github.com/swoiow/blocked/actions/workflows/build-bin.yml/badge.svg)](https://github.com/swoiow/blocked/actions/workflows/build-bin.yml)
 
-A coredns plugin to block domains.
+A coredns plugin to block domains/query.
 
 ## Usage
 
@@ -14,7 +14,7 @@ A coredns plugin to block domains.
         class all
     }
 
-    adblock {
+    blocked {
         # bloom filter capacity & rate. default: 300_000 0.01
         size_rate 300_000 0.01
     
@@ -32,7 +32,7 @@ A coredns plugin to block domains.
         cache_data <AbsolutePath>/rules.data
         
         # black list to block query, load rules from local or remote.
-        # use local+ will disable the domain means allow any line exclude comment
+        # use local+ will disable the domain verify means allow any line exclude comment
         black_list <AbsolutePath>/list.txt
         black_list local+<AbsolutePath>/list.txt
         black_list https://example.com/reject-list.txt

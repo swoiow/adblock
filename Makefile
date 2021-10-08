@@ -5,7 +5,7 @@ clean:
 	rm -rf ./.github/*.txt ./.github/rules/*.* ./.github/raw/*.*
 
 generate:
-	go get github.com/swoiow/adblock@$(GITHUB_SHA) && \
+	go get github.com/swoiow/blocked@$(GITHUB_SHA) && \
     go get github.com/leiless/dnsredir && \
 	go generate
 

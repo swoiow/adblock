@@ -1,4 +1,4 @@
-package adblock
+package blocked
 
 import (
 	"github.com/coredns/coredns/plugin"

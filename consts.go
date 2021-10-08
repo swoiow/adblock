@@ -1,4 +1,4 @@
-package adblock
+package blocked
 
 import (
 	"github.com/bits-and-blooms/bloom/v3"
@@ -41,7 +41,7 @@ var respTypeEnum = map[string]int8{
 	"REFUSED": 6, // Query Refused
 }
 
-type Adblock struct {
+type Blocked struct {
 	Next    plugin.Handler
 	Configs *Configs
 }

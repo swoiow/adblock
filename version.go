@@ -1,6 +1,6 @@
-package adblock
+package blocked
 
 const (
-	pluginName = "adblock"
-	pluginVers = "0.2.2"
+	pluginName = "blocked"
+	pluginVers = "1.0.0"
 )

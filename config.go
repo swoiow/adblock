@@ -1,4 +1,4 @@
-package adblock
+package blocked
 
 import (
 	"bufio"
@@ -6,7 +6,7 @@ import (
 	"github.com/coredns/caddy"
 	"github.com/coredns/coredns/plugin"
 	"github.com/miekg/dns"
-	"github.com/swoiow/adblock/parsers"
+	"github.com/swoiow/blocked/parsers"
 	"io"
 	"io/ioutil"
 	"net/http"

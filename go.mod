@@ -1,4 +1,4 @@
-module github.com/swoiow/adblock
+module github.com/swoiow/blocked
 
 go 1.17
 

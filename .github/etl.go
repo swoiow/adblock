@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/bits-and-blooms/bloom/v3"
-	blocked "github.com/swoiow/adblock"
-	"github.com/swoiow/adblock/parsers"
+	blocked "github.com/swoiow/blocked"
+	"github.com/swoiow/blocked/parsers"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -22,7 +22,7 @@ type githubIssue struct {
 }
 
 func fetchUrls() []string {
-	url := "https://api.github.com/repos/swoiow/adblock/issues/comments/932148163"
+	url := "https://api.github.com/repos/swoiow/blocked/issues/comments/932148163"
 	method := "GET"
 
 	client := &http.Client{}
