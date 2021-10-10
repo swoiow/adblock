@@ -46,17 +46,19 @@ A coredns plugin to block domains/query.
 
 ## Feature
 
-- 支持从远端/本地加载规则
+- 大规则小内存匹配快，Thanks: [bits-and-blooms](https://github.com/bits-and-blooms/bloom)
 - 支持从远端/本地加载缓存
++ 支持黑/白名单的规则，并可从远端/本地加载规则
+  - 默认远端加载会检查域名的合法性，本地使用`local+`前缀则不检查
 + 支持多种屏蔽的返回报文
   - `SOA`
   - `HINFO`
   - `ZERO`
   - `No-Ans`
-  - `NX`
+  - `NX` - `NXDOMAIN`
   - `REFUSED`
-+ 支持屏蔽指定类型查询
-  - [List_of_DNS_record_types](https://en.wikipedia.org/wiki/List_of_DNS_record_types)
++ 支持屏蔽指定查询类型
+  - [list of dns record types](https://en.wikipedia.org/wiki/List_of_DNS_record_types)
 + 支持多种格式的规则文件
   - `hosts` - `HostParser`
   - `surge` - `SurgeParser`
@@ -69,10 +71,13 @@ A coredns plugin to block domains/query.
 - [x] Github Action 创建bin文件
 - [x] 使用缓存文件
 - [x] 增加response的报文类型
-- [ ] Cache最近的查询
 - [x] expose过滤器的参数
 - [x] 增加white_list
 - [x] 屏蔽指定类型的dns查询
-- [ ] 引入AdGuard的过滤器
 - [ ] 支持泛域名(需要考虑n级域名的问题)
-- [ ]
+- [ ] 引入AdGuard的过滤器
+- [ ] ...
+
+## Changelog & Note
+
+- [Wiki](https://github.com/swoiow/blocked/wiki/Changelog-&-Note)
