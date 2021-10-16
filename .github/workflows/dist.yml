@@ -125,22 +125,8 @@ jobs:
 
           make generate
 
-      # ===== Build STEP =====
-      #      - name: Download OSX RAW
-      #        if: ${{ github.ref != 'refs/heads/main' }}
-      #        uses: actions/download-artifact@v2
-      #        with:
-      #          name: coredns_osx.raw
-      #          path: ${{ env.BUILD_PATH }}/coredns_osx
-      #
-      #      - name: Package OSX
-      #        if: ${{ github.ref != 'refs/heads/main' }}
-      #        run: |
-      #          cd $BUILD_PATH
-      #          upx -9 -qk -o$DIST_PATH/coredns_osx coredns_osx
-      #          zip -0 coredns_osx.zip $DIST_PATH/coredns_osx
-      #          mv coredns_osx.zip $DIST_PATH
 
+      # ===== Build STEP =====
       - name: Build rules.dat
         if: ${{ github.ref != 'refs/heads/main' }}
         run: |
@@ -152,27 +138,28 @@ jobs:
         run: |
           cd $BUILD_PATH
           make build_arm
-          upx -9 -qk -o$DIST_PATH/coredns_arm coredns_arm
+          cp coredns_arm $DIST_PATH/coredns_arm
           cd $DIST_PATH
-          zip -0 coredns_arm.zip coredns_arm
+          zip -9 coredns_arm.zip coredns_arm
 
       - name: Build Amd 64
         if: ${{ github.ref != 'refs/heads/main' }}
         run: |
           cd $BUILD_PATH
           make build_amd
-          upx -9 -qk -o$DIST_PATH/coredns_amd coredns_amd
+          cp coredns_amd $DIST_PATH/coredns_amd
           cd $DIST_PATH
-          zip -0 coredns_amd.zip coredns_amd
+          zip -9 coredns_amd.zip coredns_amd
 
       - name: Build Win 64
         if: ${{ github.ref != 'refs/heads/main' }}
         run: |
           cd $BUILD_PATH
           make build_win_x64
-          upx -9 -qk -o$DIST_PATH/coredns_x64.exe coredns_x64.exe
+          cp coredns_x64.exe $DIST_PATH/coredns_x64.exe
           cd $DIST_PATH
-          zip -0 coredns_x64.zip coredns_x64.exe
+          zip -9 coredns_x64.zip coredns_x64.exe
+
 
       # ===== Upload STEP =====
       - name: Upload Linux Arm64
@@ -199,19 +186,6 @@ jobs:
           path: ${{ env.DIST_PATH }}/coredns_x64.exe
           retention-days: 3
 
-      #      - name: Download Darwin
-      #        if: ${{ github.ref != 'refs/heads/main' }}
-      #        uses: actions/download-artifact@v2
-      #        with:
-      #          name: coredns_osx.zip
-      #          path: ${{ env.DIST_PATH }}/coredns_osx.zip
-
-      #      - name: Download rules.dat
-      #        if: ${{ github.ref != 'refs/heads/main' }}
-      #        uses: actions/download-artifact@v2
-      #        with:
-      #          name: rules.dat
-      #          path: ${{ env.DIST_PATH }}/rules.dat
 
       # ===== Release STEP =====
       - name: Public Alpha
