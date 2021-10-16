@@ -2,11 +2,12 @@ package blocked
 
 import (
 	"fmt"
-	"github.com/bits-and-blooms/bloom/v3"
-	"github.com/swoiow/blocked/parsers"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/bits-and-blooms/bloom/v3"
+	"github.com/swoiow/blocked/parsers"
 )
 
 const (

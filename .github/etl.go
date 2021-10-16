@@ -3,13 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/bits-and-blooms/bloom/v3"
-	blocked "github.com/swoiow/blocked"
-	"github.com/swoiow/blocked/parsers"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/bits-and-blooms/bloom/v3"
+	"github.com/swoiow/blocked"
+	"github.com/swoiow/blocked/parsers"
 )
 
 const (

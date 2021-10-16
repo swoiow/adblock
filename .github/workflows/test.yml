@@ -1,0 +1,90 @@
+name: TEST
+
+concurrency:
+  group: ci-TEST
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'wip/*'
+      - 'release/*'
+
+    tags:
+      - 'v*'
+      - '!alpha'
+      - '!beta'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        with:
+          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          fetch-depth: 1
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Get dependence
+        run: |
+          go get
+          make build-rules
+
+      - name: Test
+        run: go test ./...
+
+      - name: Public rules.dat
+        uses: actions/upload-artifact@v2
+        with:
+          name: rules.dat
+          path: rules.dat
+          if-no-files-found: error
+          retention-days: 7
+
+#      - uses: actions/setup-python@v2
+#        with:
+#          python-version: 3.8
+
+      - name: Create Alpha Tag
+        if: startsWith(github.ref, 'refs/heads/wip/')
+        run: |
+          git tag -f --create-reflog alpha
+          git push -f origin :refs/tags/alpha
+          git push -f origin refs/tags/alpha
+
+#      - name: Create OR Update 「alpha」 Release
+#        if: startsWith(github.ref, 'refs/heads/wip/')
+#        env:
+#          WF_REL_NAME: alpha
+#          WF_TAG_NAME: alpha
+#          WF_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        run: |
+#          pip -q install requests
+#          python .github/workflows.py
+
+      - name: Create Beta Tag
+        if: startsWith(github.ref, 'refs/heads/release/')
+        run: |
+          git tag -f --create-reflog beta
+          git push -f origin :refs/tags/beta
+          git push -f origin refs/tags/beta
+
+#      - name: Create OR Update 「beta」 Release
+#        if: startsWith(github.ref, 'refs/heads/release/')
+#        env:
+#          WF_REL_NAME: beta
+#          WF_TAG_NAME: beta
+#          WF_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        run: |
+#          pip -q install requests
+#          python .github/workflows.py

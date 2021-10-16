@@ -1,0 +1,243 @@
+name: RELEASE
+
+concurrency:
+  group: ci-RELEASE
+  cancel-in-progress: true
+
+on:
+  #  release:
+  #    types: [ published, created, edited, prereleased ]
+
+  push:
+    branches:
+      - 'main'
+
+    tags:
+      - 'alpha'
+      - 'beta'
+      - 'v*'
+
+jobs:
+  #  build-osx:
+  #    runs-on: macos-11
+  #
+  #    env:
+  #      GET_GR: https://github.com/swoiow/ftw-ci/releases/download/bin/gr4osx
+  #      USR_BIN_PATH: ${{ github.workspace }}/.bin
+  #      BUILD_PATH: ${{ github.workspace }}/.buildspace
+  #
+  #    steps:
+  #      - name: Checkout repo
+  #        uses: actions/checkout@v2
+  #        with:
+  #          fetch-depth: 1
+  #
+  #      - uses: actions/cache@v2
+  #        with:
+  #          path: |
+  #            ~/Library/Caches/go-build
+  #            ~/go/pkg/mod
+  #          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+  #          restore-keys: |
+  #            ${{ runner.os }}-go-
+  #
+  #      - name: Get dependence
+  #        run: |
+  #          curl -sSL https://github.com/leiless/dnsredir/raw/master/pf/download-pf-headers.sh | sh
+  #
+  #          mkdir -p $USR_BIN_PATH $BUILD_PATH $DIST_PATH
+  #          wget -q $GET_GR -O $USR_BIN_PATH/gr
+  #          chmod +x $USR_BIN_PATH/gr
+  #
+  #          cd $BUILD_PATH
+  #          git clone https://github.com/coredns/coredns.git $BUILD_PATH
+  #          git fetch --tags
+  #          stableTag=$($USR_BIN_PATH/gr "coredns/coredns") && git checkout $stableTag
+  #          cp -f $GITHUB_WORKSPACE/.github/plugin.cfg plugin.cfg
+  #          cp -f $GITHUB_WORKSPACE/Makefile Makefile
+  #
+  #          make generate
+  #
+  #          brew install upx
+  #
+  #      - name: Build Darwin
+  #        if: ${{ github.ref != 'refs/heads/main' }}
+  #        run: |
+  #          cd $BUILD_PATH
+  #          make build_osx
+  #          zip -9 coredns_osx.zip coredns_osx
+  #
+  #      - name: Upload Darwin RAW
+  #        uses: actions/upload-artifact@v2
+  #        if: ${{ github.ref != 'refs/heads/main' }}
+  #        with:
+  #          name: coredns_darwin_amd64.zip
+  #          path: ${{ env.BUILD_PATH }}/coredns_osx
+  #          if-no-files-found: error
+  #          retention-days: 1
+  #
+  #      - name: Upload Darwin ZIP
+  #        uses: actions/upload-artifact@v2
+  #        if: ${{ github.ref != 'refs/heads/main' }}
+  #        with:
+  #          name: coredns_osx.zip
+  #          path: ${{ env.BUILD_PATH }}/coredns_osx.zip
+  #          if-no-files-found: error
+  #          retention-days: 3
+
+  build:
+    runs-on: ubuntu-latest
+    #    needs: build-osx
+
+    env:
+      GET_GR: https://github.com/swoiow/ftw-ci/releases/download/bin/gr
+      USR_BIN_PATH: ${{ github.workspace }}/.bin
+      BUILD_PATH: ${{ github.workspace }}/.buildspace
+      DIST_PATH: ${{ github.workspace }}/.dist
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Get bin dependence
+        run: |
+          mkdir -p $USR_BIN_PATH $BUILD_PATH $DIST_PATH
+          wget -q $GET_GR -O $USR_BIN_PATH/gr
+          chmod +x $USR_BIN_PATH/gr
+
+          cd $BUILD_PATH
+          git clone https://github.com/coredns/coredns.git $BUILD_PATH
+          git fetch --tags
+          stableTag=$($USR_BIN_PATH/gr "coredns/coredns") && git checkout $stableTag
+          cp -f $GITHUB_WORKSPACE/.github/plugin.cfg plugin.cfg
+          cp -f $GITHUB_WORKSPACE/Makefile Makefile
+
+          make generate
+
+      # ===== Build STEP =====
+      #      - name: Download OSX RAW
+      #        if: ${{ github.ref != 'refs/heads/main' }}
+      #        uses: actions/download-artifact@v2
+      #        with:
+      #          name: coredns_osx.raw
+      #          path: ${{ env.BUILD_PATH }}/coredns_osx
+      #
+      #      - name: Package OSX
+      #        if: ${{ github.ref != 'refs/heads/main' }}
+      #        run: |
+      #          cd $BUILD_PATH
+      #          upx -9 -qk -o$DIST_PATH/coredns_osx coredns_osx
+      #          zip -0 coredns_osx.zip $DIST_PATH/coredns_osx
+      #          mv coredns_osx.zip $DIST_PATH
+
+      - name: Build rules.dat
+        if: ${{ github.ref != 'refs/heads/main' }}
+        run: |
+          go get
+          make build-rules
+
+      - name: Build Arm 64
+        if: ${{ github.ref != 'refs/heads/main' }}
+        run: |
+          cd $BUILD_PATH
+          make build_arm
+          upx -9 -qk -o$DIST_PATH/coredns_arm coredns_arm
+          cd $DIST_PATH
+          zip -0 coredns_arm.zip coredns_arm
+
+      - name: Build Amd 64
+        if: ${{ github.ref != 'refs/heads/main' }}
+        run: |
+          cd $BUILD_PATH
+          make build_amd
+          upx -9 -qk -o$DIST_PATH/coredns_amd coredns_amd
+          cd $DIST_PATH
+          zip -0 coredns_amd.zip coredns_amd
+
+      - name: Build Win 64
+        if: ${{ github.ref != 'refs/heads/main' }}
+        run: |
+          cd $BUILD_PATH
+          make build_win_x64
+          upx -9 -qk -o$DIST_PATH/coredns_x64.exe coredns_x64.exe
+          cd $DIST_PATH
+          zip -0 coredns_x64.zip coredns_x64.exe
+
+      # ===== Upload STEP =====
+      - name: Upload Linux Arm64
+        uses: actions/upload-artifact@v2
+        if: ${{ github.ref != 'refs/heads/main' }}
+        with:
+          name: coredns_linux_arm64.zip
+          path: ${{ env.DIST_PATH }}/coredns_arm
+          retention-days: 3
+
+      - name: Upload Linux Amd64
+        uses: actions/upload-artifact@v2
+        if: ${{ github.ref != 'refs/heads/main' }}
+        with:
+          name: coredns_linux_amd64.zip
+          path: ${{ env.DIST_PATH }}/coredns_amd
+          retention-days: 3
+
+      - name: Upload Windows x64
+        uses: actions/upload-artifact@v2
+        if: ${{ github.ref != 'refs/heads/main' }}
+        with:
+          name: coredns_x64.zip
+          path: ${{ env.DIST_PATH }}/coredns_x64.exe
+          retention-days: 3
+
+      #      - name: Download Darwin
+      #        if: ${{ github.ref != 'refs/heads/main' }}
+      #        uses: actions/download-artifact@v2
+      #        with:
+      #          name: coredns_osx.zip
+      #          path: ${{ env.DIST_PATH }}/coredns_osx.zip
+
+      #      - name: Download rules.dat
+      #        if: ${{ github.ref != 'refs/heads/main' }}
+      #        uses: actions/download-artifact@v2
+      #        with:
+      #          name: rules.dat
+      #          path: ${{ env.DIST_PATH }}/rules.dat
+
+      # ===== Release STEP =====
+      - name: Public Alpha
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/alpha')
+        with:
+          name: "alpha"
+          prerelease: true
+          files: |
+            rules.dat
+            ${{ env.DIST_PATH }}/coredns_*.zip
+
+      - name: Public Beta
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/beta')
+        with:
+          name: "beta"
+          prerelease: true
+          files: |
+            rules.dat
+            ${{ env.DIST_PATH }}/coredns_*.zip
+
+      - name: Release Stable
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: |
+            rules.dat
+            ${{ env.DIST_PATH }}/coredns_*.zip

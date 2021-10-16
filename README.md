@@ -1,4 +1,6 @@
-# blocked [![RELEASE](https://github.com/swoiow/blocked/actions/workflows/build-bin.yml/badge.svg)](https://github.com/swoiow/blocked/actions/workflows/build-bin.yml)
+# blocked 
+[![TEST](https://github.com/swoiow/blocked/actions/workflows/test.yml/badge.svg)](https://github.com/swoiow/blocked/actions/workflows/test.yml)
+[![RELEASE](https://github.com/swoiow/blocked/actions/workflows/dist.yml/badge.svg)](https://github.com/swoiow/blocked/actions/workflows/dist.yml)
 
 A coredns plugin to block domains/query.
 
@@ -32,7 +34,7 @@ A coredns plugin to block domains/query.
         cache_data <AbsolutePath>/rules.data
         
         # black list to block query, load rules from local or remote.
-        # use local+ will disable the domain verify means allow any line exclude comment
+        #  use `local+` will skip the domain verify means allow any line exclude comment
         black_list <AbsolutePath>/list.txt
         black_list local+<AbsolutePath>/list.txt
         black_list https://example.com/reject-list.txt
@@ -48,8 +50,9 @@ A coredns plugin to block domains/query.
 
 - 大规则小内存匹配快，Thanks: [bits-and-blooms](https://github.com/bits-and-blooms/bloom)
 - 支持从远端/本地加载缓存
+
 + 支持黑/白名单的规则，并可从远端/本地加载规则
-  - 默认远端加载会检查域名的合法性，本地使用`local+`前缀则不检查
+  - 默认远端加载会检查域名合法性；本地使用`local+`前缀，跳过合法性检查
 + 支持多种屏蔽的返回报文
   - `SOA`
   - `HINFO`

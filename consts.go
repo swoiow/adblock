@@ -3,23 +3,29 @@ package blocked
 import (
 	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/coredns/plugin"
+	"github.com/miekg/dns"
 )
+
+type respType int
 
 const (
 	MINUTE = 60
 	HOUR   = 60 * MINUTE
 	DAY    = 24 * HOUR
+)
 
+const (
 	/*
 	 * respType: using by switch logic
 	 */
-	NO_ANS  = 1
-	SOA     = 2
-	HINFO   = 3
-	ZERO    = 4
-	NX      = 5
-	REFUSED = 6
+	NO_ANS respType = iota
+	SOA
+	HINFO
+	ZERO
+	NX
+	REFUSED
 )
+const NXDOMAIN = NX
 
 const (
 	qLogFmt    = "%s: '%s' - spent: %s"
@@ -31,14 +37,25 @@ const (
 	domainMaxLength = 63
 )
 
-// define: respType, using by configmap
-var respTypeEnum = map[string]int8{
-	"NO_ANS":  1,
-	"SOA":     2,
-	"HINFO":   3,
-	"ZERO":    4,
-	"NX":      5, // Non-Existent Domain
-	"REFUSED": 6, // Query Refused
+func stringToRespType(s string) respType {
+	// define: respType, using by configmap
+	switch s {
+	case "NO_ANS":
+		return NO_ANS
+	case "SOA":
+		return SOA
+	case "HINFO":
+		return HINFO
+	case "ZERO":
+		return ZERO
+	case "NXDOMAIN":
+	case "NX":
+		return NX
+	case "REFUSED":
+		return REFUSED
+	}
+
+	panic("Unable to identify resp type: " + s)
 }
 
 type Blocked struct {
@@ -52,9 +69,11 @@ type Configs struct {
 
 	log        bool
 	filter     *bloom.BloomFilter
-	respType   int8
 	blockQtype map[uint16]bool
 
+	respType int8
+	respFunc func(q dns.Question, r *dns.Msg) *dns.Msg
+
 	whiteListMode bool
-	whiteList     *bloom.BloomFilter
+	wFilter       *bloom.BloomFilter
 }

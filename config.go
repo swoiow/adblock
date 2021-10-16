@@ -2,17 +2,18 @@ package blocked
 
 import (
 	"bufio"
-	"github.com/bits-and-blooms/bloom/v3"
-	"github.com/coredns/caddy"
-	"github.com/coredns/coredns/plugin"
-	"github.com/miekg/dns"
-	"github.com/swoiow/blocked/parsers"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/bits-and-blooms/bloom/v3"
+	"github.com/coredns/caddy"
+	"github.com/coredns/coredns/plugin"
+	"github.com/miekg/dns"
+	"github.com/swoiow/blocked/parsers"
 )
 
 func DefaultConfigs() *Configs {
@@ -21,7 +22,7 @@ func DefaultConfigs() *Configs {
 		Rate: 0.01,
 
 		log:        false,
-		respType:   SOA,
+		respType:   int8(SOA),
 		blockQtype: make(map[uint16]bool, 10),
 
 		whiteListMode: false,
@@ -34,10 +35,10 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 
 	for c.NextBlock() {
 		value := c.Val()
+		args := c.RemainingArgs()
 
 		switch value {
 		case "size_rate":
-			args := c.RemainingArgs()
 			switch len(args) {
 			case 1:
 				size, err := strconv.Atoi(args[0])
@@ -58,36 +59,58 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 				configs.Rate = rate
 			}
 			break
+
 		case "log":
 			configs.log = true
 			log.Info("[runtimeConfigs] log is enabled")
 			break
+
 		case "block_qtype":
-			var enabled []string
-			args := c.RemainingArgs()
+			var blockQtype []string
 			for ix := 0; ix < len(args); ix++ {
-				qtype := args[ix]
-				val := dns.StringToType[strings.ToUpper(qtype)]
+				qtype := strings.ToUpper(args[ix])
+				val := dns.StringToType[qtype]
 				if val != 0 {
 					configs.blockQtype[val] = true
-					enabled = append(enabled, strings.ToUpper(qtype))
+					blockQtype = append(blockQtype, qtype)
 				}
 			}
-			log.Infof("[runtimeConfigs] block_qtype: %s", enabled)
+			log.Infof("[runtimeConfigs] block_qtype: %s", blockQtype)
 			break
-		case "resp_type":
-			var enabled string
 
-			args := c.RemainingArgs()
-			inputString := strings.TrimSpace(args[0])
-			if val, ok := respTypeEnum[strings.ToUpper(inputString)]; ok {
-				configs.respType = val
-				enabled = strings.ToUpper(inputString)
+		case "resp_type":
+			var inputString string
+			if args == nil {
+				inputString = "SOA"
+			} else {
+				inputString = strings.ToUpper(strings.TrimSpace(args[0]))
 			}
-			log.Infof("[runtimeConfigs] resp_type: %s", enabled)
+
+			switch stringToRespType(inputString) {
+			case SOA:
+				configs.respFunc = CreateSOA
+				break
+			case HINFO:
+				configs.respFunc = CreateHINFO
+				break
+			case ZERO:
+				configs.respFunc = CreateZERO
+				break
+			case REFUSED:
+				configs.respFunc = CreateREFUSED
+				break
+			case NO_ANS:
+				configs.respFunc = CreateNOANS
+				break
+			case NXDOMAIN:
+				configs.respFunc = CreateNXDOMAIN
+				break
+			}
+
+			log.Infof("[runtimeConfigs] resp_type: %s", inputString)
 			break
+
 		case "cache_data":
-			args := c.RemainingArgs()
 			inputString := strings.TrimSpace(args[0])
 			if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
 				strings.HasPrefix(strings.ToLower(inputString), "https://") {
@@ -96,8 +119,8 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 				_ = LoadCacheByLocal(inputString, configs.filter)
 			}
 			break
+
 		case "black_list":
-			args := c.RemainingArgs()
 			inputString := strings.TrimSpace(args[0])
 
 			strictMode := true
@@ -113,8 +136,8 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 				_ = LoadRuleByLocal(inputString, configs.filter, strictMode)
 			}
 			break
+
 		case "white_list":
-			args := c.RemainingArgs()
 			inputString := strings.TrimSpace(args[0])
 
 			minLen := domainMinLength
@@ -130,16 +153,12 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 			if len(lines) > 0 {
 				if !configs.whiteListMode {
 					configs.whiteListMode = true
-					configs.whiteList = bloom.NewWithEstimates(100_000, 0.01)
+					configs.wFilter = bloom.NewWithEstimates(100_000, 0.01)
 					log.Info("[runtimeConfigs] WhiteList mode is enabled")
 				}
 
-				addLines2filter(parsers.LooseParser(lines, parsers.DomainParser, minLen), configs.whiteList)
+				addLines2filter(parsers.LooseParser(lines, parsers.DomainParser, minLen), configs.wFilter)
 			}
-
-			break
-		case "}":
-		case "{":
 			break
 		}
 	}
@@ -209,7 +228,7 @@ func LoadCacheByRemote(uri string, filter *bloom.BloomFilter) error {
 	if err != nil {
 		return err
 	}
-	log.Infof(loadLogFmt, "cache", "*", uri)
+	log.Infof(loadLogFmt, "cache", filter.ApproximatedSize(), uri)
 
 	return nil
 }
@@ -226,7 +245,7 @@ func LoadCacheByLocal(path string, filter *bloom.BloomFilter) error {
 		return err
 	}
 
-	log.Infof(loadLogFmt, "cache", "*", path)
+	log.Infof(loadLogFmt, "cache", filter.ApproximatedSize(), path)
 	return nil
 }
 
