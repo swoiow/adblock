@@ -1,3 +1,7 @@
+.build_space/
+wip/
+dist/
+
 # Idea
 /.idea/
 /go.sum

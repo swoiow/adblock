@@ -2,6 +2,8 @@ package parsers
 
 import (
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestDnsmasqParser(t *testing.T) {
@@ -27,7 +29,7 @@ func TestDnsmasqParser(t *testing.T) {
 			if result != tt.expect {
 				t.Errorf("parser() got = %v, want %v", result, tt.expect)
 			} else {
-				if result && domain != "example.com" {
+				if result && !cmp.Equal(domain, []string{"example.com"}) {
 					t.Errorf("parser() result = %v, want %v", result, "example.com")
 				}
 			}

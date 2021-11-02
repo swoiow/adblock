@@ -53,37 +53,42 @@ func fetchUrls() []string {
 	}
 
 	urls := strings.Split(jsonb.Body, "\r\n")
-	return urls
+	var bucket []string
+	for _, i := range urls {
+		if len(strings.TrimSpace(i)) > 0 {
+			bucket = append(bucket, i)
+		}
+	}
+	return bucket
 }
 
-func createRuleset(rules []string) {
-	defaultConfigs := blocked.DefaultConfigs()
+func createRuleset(ruleUrls []string) {
+	defaultConfigs := blocked.NewConfigs()
 
-	ruleset := []string{}
-	number := 0
+	ruleset := make(map[string]int8)
 	filter := bloom.NewWithEstimates(uint(defaultConfigs.Size), defaultConfigs.Rate)
-	for _, ruleUrl := range rules {
+	for _, ruleUrl := range ruleUrls {
 		lines, err := blocked.UrlToLines(ruleUrl)
 		if err != nil {
 			panic(err)
 		}
 
 		// handle by parsers
-		c := 0
+		last := len(ruleset)
 		lines = parsers.FuzzyParser(lines, 3)
 		for _, line := range lines {
 			domain := strings.ToLower(strings.TrimSpace(line))
-			if !filter.TestAndAddString(domain) {
-				c += 1
-				ruleset = append(ruleset, domain)
+
+			if _, ok := ruleset[domain]; !ok {
+				filter.TestAndAddString(domain)
+				ruleset[domain] = 1
 			}
 		}
-		fmt.Printf("Loaded %s (num:%v) from `%s`.\n", "rules", c, ruleUrl)
 
-		number += c
+		fmt.Printf("Loaded %s (num:%v) from `%s`.\n", "rules", len(ruleset)-last, ruleUrl)
 	}
 
-	fmt.Printf("Total load: %v", number)
+	fmt.Printf("Total load: %v", len(ruleset))
 
 	// Save: rulesetData
 	wFile, err := os.Create(rulesetData)
@@ -103,7 +108,11 @@ func createRuleset(rules []string) {
 	}
 	defer wFile.Close()
 
-	wFile.WriteString(strings.Join(ruleset, "\n"))
+	rules := make([]string, 0, len(ruleset))
+	for k := range ruleset {
+		rules = append(rules, k)
+	}
+	wFile.WriteString(strings.Join(rules, "\n"))
 }
 
 func main() {

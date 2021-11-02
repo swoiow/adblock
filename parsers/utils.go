@@ -7,7 +7,7 @@ import (
 )
 
 func isCommentOrEmptyLine(s string) bool {
-	return strings.HasPrefix(s, "#") || len(s) == 0
+	return strings.HasPrefix(s, "#") || strings.HasPrefix(s, "!") || len(s) == 0
 }
 
 func getFunctionName(i interface{}) string {

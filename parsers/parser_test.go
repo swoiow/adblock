@@ -5,6 +5,10 @@ import (
 	"testing"
 )
 
+/*
+ * note1: only LooseParser couldn't valid domain or not. So using `local+` in config.
+ */
+
 func TestFuzzyParser(t *testing.T) {
 
 	testcase := struct {
@@ -16,6 +20,7 @@ func TestFuzzyParser(t *testing.T) {
 			"server=/example.com/1.1.1.1",
 			"example.com",
 			"DOMAIN,example.com,REJECT",
+			// "DOMAIN-SUFFIX,example.com,reject",  //  note1
 
 			"server=/example/1.1.1.1",
 			"example",
@@ -36,10 +41,11 @@ func TestFuzzyParser(t *testing.T) {
 			"example.com",
 			"example.com",
 			"example.com",
+			// "*.example.com", "example.com", //  note1
 		},
 	}
 
-	t.Run("example.com", func(t *testing.T) {
+	t.Run("", func(t *testing.T) {
 		if got := FuzzyParser(testcase.lines, 1); !reflect.DeepEqual(got, testcase.want) {
 			t.Errorf("FuzzyParser() = %v, want %v", got, testcase.want)
 		}
@@ -49,7 +55,7 @@ func TestFuzzyParser(t *testing.T) {
 func TestLooseParser(t *testing.T) {
 	type args struct {
 		lines  []string
-		engine func(d string) string
+		engine func(d string) []string
 		minLen int
 	}
 
@@ -60,6 +66,10 @@ func TestLooseParser(t *testing.T) {
 		{
 			args: args{lines: []string{"https://example.com"}, engine: DomainParser, minLen: 1},
 			want: []string{"https://example.com"},
+		},
+		{
+			args: args{lines: []string{"DOMAIN-SUFFIX,example.com,reject"}, engine: SurgeParser, minLen: 1},
+			want: []string{"*.example.com", "example.com"},
 		},
 	}
 

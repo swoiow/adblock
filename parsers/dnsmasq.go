@@ -6,11 +6,12 @@ const (
 	fSlashMark = "/"
 )
 
-func DnsmasqParser(d string) string {
+func DnsmasqParser(d string) []string {
 	if !strings.Contains(d, fSlashMark) {
-		return ""
+		return nil
 	}
 
 	d = strings.Split(d, fSlashMark)[1]
-	return strings.TrimSpace(d)
+	d = strings.TrimSpace(d)
+	return []string{d}
 }

@@ -1,36 +1,43 @@
 package parsers
 
-var engines = []func(s string) string{
+var engines = []func(s string) []string{
 	HostParser,
 	SurgeParser,
 	DnsmasqParser,
 	DomainParser,
 }
 
-func Parse(line string, engine func(d string) string) (bool, string) {
+func Parse(line string, engine func(s string) []string) (bool, []string) {
 	if IsCommentOrEmptyLine(line) {
-		return false, ""
+		return false, nil
 	}
 
-	var domain = engine(line)
-	if IsDomainName(domain) {
-		return true, domain
-	} else {
+	var bucket []string
+	domains := engine(line)
+	for _, domain := range domains {
+		if IsDomainName(domain) {
+			bucket = append(bucket, domain)
+		}
 		// to debug
 		// fmt.Printf("Handle domain: `%s` failed after parse.\n", domain)
-		return false, ""
+	}
+
+	if len(bucket) > 0 {
+		return true, bucket
+	} else {
+		return false, nil
 	}
 }
 
-func LooseParser(lines []string, engine func(d string) string, minLen int) []string {
+func LooseParser(lines []string, engine func(d string) []string, minLen int) []string {
 	var bucket []string
 
 	for _, line := range lines {
 		if !IsDomainNamePlus(line, minLen, false, false) {
 			continue
 		}
-		domain := engine(line)
-		bucket = append(bucket, domain)
+		domains := engine(line)
+		bucket = append(bucket, domains...)
 	}
 	return bucket
 }
@@ -44,11 +51,15 @@ func FuzzyParser(lines []string, minLen int) []string {
 		}
 
 		for _, engine := range engines {
-			result, domain := Parse(line, engine)
-			result = IsDomainNamePlus(domain, minLen, true, true)
+			result, domains := Parse(line, engine)
 			if result {
-				// fmt.Printf("line: `%s` parsered by: %s\n", line, getFunctionName(engine))
-				bucket = append(bucket, domain)
+				for _, domain := range domains {
+					result = IsDomainNamePlus(domain, minLen, true, true)
+					if result {
+						// fmt.Printf("line: `%s` parsered by: %s\n", line, getFunctionName(engine))
+						bucket = append(bucket, domain)
+					}
+				}
 				break
 			}
 		}

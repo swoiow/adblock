@@ -1,0 +1,76 @@
+name: CronTab
+
+concurrency:
+  group: ci-CronTab
+  cancel-in-progress: true
+
+on:
+  schedule:
+    - cron: "00 3 * * 5"
+
+  push:
+    branches:
+      - 'main'
+
+jobs:
+  CleanUp:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        with:
+          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Remove all draft release
+        env:
+          WF_REL_NAME: ""
+          WF_TAG_NAME: ""
+          WF_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pip -q install requests
+          cd .github
+          python -c "from workflows import remove_all_draft_release;remove_all_draft_release()"
+
+  Build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Get dependence
+        run: |
+          go get
+          go get -t github.com/swoiow/blocked/parsers
+          make build-rules
+
+      - name: Test
+        run: go test ./...
+
+      - name: Upload rules.dat
+        uses: actions/upload-artifact@v2
+        with:
+          name: rules.dat
+          path: rules.dat
+          if-no-files-found: error
+          retention-days: 7

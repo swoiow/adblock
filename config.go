@@ -16,24 +16,27 @@ import (
 	"github.com/swoiow/blocked/parsers"
 )
 
-func DefaultConfigs() *Configs {
+func NewConfigs() *Configs {
 	return &Configs{
 		Size: 300_000,
 		Rate: 0.01,
 
 		log:        false,
-		respType:   int8(SOA),
-		blockQtype: make(map[uint16]bool, 10),
+		hostnameQ:  REFUSED,
+		respFunc:   CreateSOA,
+		blockQtype: make(map[uint16]RespFunc, 10),
 
-		whiteListMode: false,
+		wFilter: nil,
+
+		wildcardMode: false,
 	}
 }
 
 func parseConfiguration(c *caddy.Controller) (*Configs, error) {
-	configs := *DefaultConfigs()
+	configs := NewConfigs()
 	configs.filter = bloom.NewWithEstimates(uint(configs.Size), configs.Rate)
 
-	for c.NextBlock() {
+	for c.Next() {
 		value := c.Val()
 		args := c.RemainingArgs()
 
@@ -58,56 +61,65 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 				}
 				configs.Rate = rate
 			}
+			configs.filter = bloom.NewWithEstimates(uint(configs.Size), configs.Rate)
 			break
 
 		case "log":
 			configs.log = true
-			log.Info("[runtimeConfigs] log is enabled")
+			log.Info("[Settings] log is enabled")
 			break
 
-		case "block_qtype":
-			var blockQtype []string
-			for ix := 0; ix < len(args); ix++ {
-				qtype := strings.ToUpper(args[ix])
-				val := dns.StringToType[qtype]
-				if val != 0 {
-					configs.blockQtype[val] = true
-					blockQtype = append(blockQtype, qtype)
-				}
-			}
-			log.Infof("[runtimeConfigs] block_qtype: %s", blockQtype)
-			break
-
-		case "resp_type":
-			var inputString string
-			if args == nil {
-				inputString = "SOA"
-			} else {
+		case "hostname_query":
+			inputString := "REFUSED"
+			if len(args) > 0 {
 				inputString = strings.ToUpper(strings.TrimSpace(args[0]))
 			}
 
-			switch stringToRespType(inputString) {
-			case SOA:
-				configs.respFunc = CreateSOA
-				break
-			case HINFO:
-				configs.respFunc = CreateHINFO
-				break
-			case ZERO:
-				configs.respFunc = CreateZERO
-				break
+			switch string2RespType(inputString) {
 			case REFUSED:
-				configs.respFunc = CreateREFUSED
-				break
-			case NO_ANS:
-				configs.respFunc = CreateNOANS
-				break
-			case NXDOMAIN:
-				configs.respFunc = CreateNXDOMAIN
-				break
+				configs.hostnameQ = REFUSED
+			case IGNORE:
+				configs.hostnameQ = IGNORE
+			}
+			log.Infof("[Settings] hostname_query: %s", inputString)
+			break
+
+		case "resp_type":
+			inputString := "SOA"
+			if len(args) > 0 {
+				inputString = strings.ToUpper(strings.TrimSpace(args[0]))
+			}
+			fn := RespType2RespFunc(string2RespType(inputString))
+			if fn != nil {
+				log.Infof("[Settings] resp_type: %s", inputString)
+				configs.respFunc = fn
 			}
 
-			log.Infof("[runtimeConfigs] resp_type: %s", inputString)
+			// handle block_qtype config
+			for c.NextBlock() {
+				var blockQtype []string
+
+				inputString = strings.ToUpper(strings.TrimSpace(c.Val()))
+				blockMode := string2RespType(inputString)
+				fn := RespType2RespFunc(blockMode)
+				if fn != nil {
+					qTypeArgs := c.RemainingArgs()
+					for ix := 0; ix < len(qTypeArgs); ix++ {
+						qTypeStr := strings.ToUpper(qTypeArgs[ix])
+						qType := dns.StringToType[qTypeStr]
+						configs.blockQtype[qType] = fn
+						blockQtype = append(blockQtype, qTypeStr)
+					}
+				}
+				if len(blockQtype) > 0 {
+					log.Infof("[Settings] block_qtype: %s -> %s", blockQtype, inputString)
+				}
+			}
+			break
+
+		case "wildcard":
+			log.Info("[Settings] wildcard mode is enabled")
+			configs.wildcardMode = true
 			break
 
 		case "cache_data":
@@ -151,23 +163,28 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 			}
 
 			if len(lines) > 0 {
-				if !configs.whiteListMode {
-					configs.whiteListMode = true
+				if configs.wFilter == nil {
 					configs.wFilter = bloom.NewWithEstimates(100_000, 0.01)
-					log.Info("[runtimeConfigs] WhiteList mode is enabled")
+					log.Info("[Settings] whiteList mode is enabled")
 				}
 
 				addLines2filter(parsers.LooseParser(lines, parsers.DomainParser, minLen), configs.wFilter)
 			}
 			break
+
+		case "{", "}":
+			break
+
+		default:
+			return nil, c.Errf("unknown property '%s'", c.Val())
 		}
 	}
 
-	return &configs, nil
+	return configs, nil
 }
 
 /*
-*   Utils
+ *   Utils
  */
 
 func addLines2filter(lines []string, filter *bloom.BloomFilter) (int, *bloom.BloomFilter) {

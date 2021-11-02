@@ -23,11 +23,19 @@ A coredns plugin to block domains/query.
         # enable log, remove is disable
         log
         
-        # block_query_type, return REFUSED
-        block_qtype A AAAA HTTPS MX PTR SRV CNAME
+        # hostname query, default: refused. Options: ignore / refused
+        hostname_query refused
         
-        # blocked_query_response, soa is default. Options: soa / zero / hinfo / no-ans
-        resp_type zero
+        # blocked_query_response, default: soa. Options: soa / zero / hinfo / no-ans / refused
+        #  can config some special for qtypes
+        resp_type zero {
+            refused ANY AAAA HTTPS MX PTR SRV CNAME
+            zero AAAA
+        }
+        
+        # covert domain in wildcard, and compare all to filter
+        #  if use it black_list must used `local+` prefix to skip domain valid
+        wildcard
         
         # (the last cache-data will be ues) load cache file from local or remote
         cache_data https://example.com/rules.data
@@ -67,6 +75,7 @@ A coredns plugin to block domains/query.
   - `surge` - `SurgeParser`
   - `dnsmasq` - `DnsmasqParser`
   - `domain` - `DomainParser`
+  - `abnf` - `ABNFParser`, 需要使用`abnf+`前缀指定解析器
 
 ## TODO
 
@@ -77,7 +86,7 @@ A coredns plugin to block domains/query.
 - [x] expose过滤器的参数
 - [x] 增加white_list
 - [x] 屏蔽指定类型的dns查询
-- [ ] 支持泛域名(需要考虑n级域名的问题)
+- [x] 支持泛域名屏蔽规则(需要考虑n级域名的问题)
 - [ ] 引入AdGuard的过滤器
 - [ ] ...
 

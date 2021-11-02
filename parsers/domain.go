@@ -2,6 +2,7 @@ package parsers
 
 import "strings"
 
-func DomainParser(s string) string {
-	return strings.TrimSpace(s)
+func DomainParser(s string) []string {
+	d := strings.TrimSpace(s)
+	return []string{d}
 }

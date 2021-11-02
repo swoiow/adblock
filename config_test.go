@@ -15,7 +15,7 @@ const (
 	rulesetData = "rules.dat"
 )
 
-var defaultConfigs = *DefaultConfigs()
+var defaultConfigs = NewConfigs()
 
 func TestCreateCache(t *testing.T) {
 	t.Skip()
@@ -84,8 +84,8 @@ func TestCacheByFile(t *testing.T) {
 	lines, _ := FileToLines(rulesetPath)
 
 	for _, line := range lines {
-		result, domain := parsers.Parse(line, parsers.DomainParser)
-		items = append(items, rule{name: strings.ToLower(domain), result: result})
+		result, domains := parsers.Parse(line, parsers.DomainParser)
+		items = append(items, rule{name: strings.ToLower(domains[0]), result: result})
 	}
 
 	for _, tt := range items {

@@ -1,0 +1,152 @@
+name: RELEASE (in docker)
+
+concurrency:
+  group: ci-docker-RELEASE-${{ github.ref}}
+  cancel-in-progress: true
+
+on:
+  #  release:
+  #    types: [ published, created, edited, prereleased ]
+
+  push:
+    branches:
+      - 'main'
+
+    tags:
+      - 'alpha'
+      - 'beta'
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      GET_GR: https://github.com/swoiow/ftw-ci/releases/download/bin/gr
+      USR_BIN_PATH: ${{ github.workspace }}/.bin
+      BUILD_PATH: ${{ github.workspace }}/.buildspace
+      DIST_PATH: ${{ github.workspace }}/.dist
+      WORKSHOP: ${{ secrets.WORKSHOP }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Get bin dependence
+        run: |
+          mkdir -p $USR_BIN_PATH $BUILD_PATH $DIST_PATH
+          make build-image
+
+
+      # ===== Build STEP =====
+      - name: Build rules.dat
+        if: ${{ github.ref != 'refs/heads/main' }}
+        run: |
+          go get
+          make build-rules
+
+      - name: Build Arm 64
+        if: ${{ github.ref != 'refs/heads/main' }}
+        run: |
+          cd $DIST_PATH
+          docker run -i --rm \
+            -e GITHUB_SHA=$GITHUB_SHA \
+            -e DIST_PATH=/dist \
+            -e WORKSHOP=$WORKSHOP \
+            -v ${PWD}:/dist \
+            runtime \
+            make build_arm
+          zip -9 coredns_arm.zip coredns_arm
+
+      - name: Build Amd 64
+        if: ${{ github.ref != 'refs/heads/main' }}
+        run: |
+          cd $DIST_PATH
+          docker run -i --rm \
+            -e GITHUB_SHA=$GITHUB_SHA \
+            -e DIST_PATH=/dist \
+            -e WORKSHOP=$WORKSHOP \
+            -v ${PWD}:/dist \
+            runtime \
+            make build_amd
+          zip -9 coredns_amd.zip coredns_amd
+
+      - name: Build Win 64
+        if: ${{ github.ref != 'refs/heads/main' }}
+        run: |
+          cd $DIST_PATH
+          docker run -i --rm \
+            -e GITHUB_SHA=$GITHUB_SHA \
+            -e DIST_PATH=/dist \
+            -e WORKSHOP=$WORKSHOP \
+            -v ${PWD}:/dist \
+            runtime \
+            make build_win_x64
+          zip -9 coredns_x64.zip coredns_x64.exe
+
+
+      # ===== Upload STEP =====
+      - name: Upload Linux Arm64
+        uses: actions/upload-artifact@v2
+        if: ${{ github.ref != 'refs/heads/main' }}
+        with:
+          name: coredns_linux_arm64.zip
+          path: ${{ env.DIST_PATH }}/coredns_arm
+          retention-days: 3
+
+      - name: Upload Linux Amd64
+        uses: actions/upload-artifact@v2
+        if: ${{ github.ref != 'refs/heads/main' }}
+        with:
+          name: coredns_linux_amd64.zip
+          path: ${{ env.DIST_PATH }}/coredns_amd
+          retention-days: 3
+
+      - name: Upload Windows x64
+        uses: actions/upload-artifact@v2
+        if: ${{ github.ref != 'refs/heads/main' }}
+        with:
+          name: coredns_x64.zip
+          path: ${{ env.DIST_PATH }}/coredns_x64.exe
+          retention-days: 3
+
+
+      # ===== Release STEP =====
+      - name: Public Alpha
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/alpha')
+        with:
+          name: "alpha"
+          prerelease: true
+          files: |
+            rules.dat
+            ${{ env.DIST_PATH }}/coredns_*.zip
+
+      - name: Public Beta
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/beta')
+        with:
+          name: "beta"
+          prerelease: true
+          files: |
+            rules.dat
+            ${{ env.DIST_PATH }}/coredns_*.zip
+
+      - name: Release Stable
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: |
+            rules.dat
+            ${{ env.DIST_PATH }}/coredns_*.zip

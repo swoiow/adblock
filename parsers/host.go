@@ -13,7 +13,7 @@ const (
 	commentMark = " #"
 )
 
-func HostParser(d string) string {
+func HostParser(d string) []string {
 	d = strings.TrimSpace(d)
 	if strings.HasPrefix(d, rule127) {
 		d = strings.TrimPrefix(d, rule127)
@@ -26,5 +26,6 @@ func HostParser(d string) string {
 	d = strings.TrimSuffix(d, "/")
 
 	d = strings.Split(d, commentMark)[0] // Some hosts file has comment
-	return strings.TrimSpace(d)
+	d = strings.TrimSpace(d)
+	return []string{d}
 }

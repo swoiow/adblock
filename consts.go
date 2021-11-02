@@ -6,7 +6,8 @@ import (
 	"github.com/miekg/dns"
 )
 
-type respType int
+type RespType int8
+type RespFunc func(q dns.Question, r *dns.Msg) *dns.Msg
 
 const (
 	MINUTE = 60
@@ -18,16 +19,18 @@ const (
 	/*
 	 * respType: using by switch logic
 	 */
-	NO_ANS respType = iota
+	NoAns RespType = iota
 	SOA
 	HINFO
 	ZERO
 	NX
 	REFUSED
+	IGNORE
 )
-const NXDOMAIN = NX
 
 const (
+	NXDOMAIN = NX
+
 	qLogFmt    = "%s: '%s' - spent: %s"
 	loadLogFmt = "Loaded %s (num:%v) from `%s`."
 )
@@ -37,25 +40,44 @@ const (
 	domainMaxLength = 63
 )
 
-func stringToRespType(s string) respType {
+func string2RespType(s string) RespType {
 	// define: respType, using by configmap
 	switch s {
-	case "NO_ANS":
-		return NO_ANS
+	case "IGNORE":
+		return IGNORE
+	case "NO_ANS", "NO-ANS", "NOANS":
+		return NoAns
 	case "SOA":
 		return SOA
 	case "HINFO":
 		return HINFO
 	case "ZERO":
 		return ZERO
-	case "NXDOMAIN":
-	case "NX":
+	case "NX", "NXDOMAIN":
 		return NX
 	case "REFUSED":
 		return REFUSED
 	}
 
 	panic("Unable to identify resp type: " + s)
+}
+
+func RespType2RespFunc(rt RespType) RespFunc {
+	switch rt {
+	case HINFO:
+		return CreateHINFO
+	case ZERO:
+		return CreateZERO
+	case REFUSED:
+		return CreateREFUSED
+	case NoAns:
+		return CreateNOANS
+	case NXDOMAIN:
+		return CreateNXDOMAIN
+	case SOA:
+		return CreateSOA
+	}
+	return nil
 }
 
 type Blocked struct {
@@ -67,13 +89,13 @@ type Configs struct {
 	Size int
 	Rate float64
 
-	log        bool
-	filter     *bloom.BloomFilter
-	blockQtype map[uint16]bool
+	log          bool
+	wildcardMode bool
+	hostnameQ    RespType
 
-	respType int8
-	respFunc func(q dns.Question, r *dns.Msg) *dns.Msg
+	respFunc   RespFunc
+	blockQtype map[uint16]RespFunc
 
-	whiteListMode bool
-	wFilter       *bloom.BloomFilter
+	filter  *bloom.BloomFilter
+	wFilter *bloom.BloomFilter
 }
