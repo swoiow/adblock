@@ -17,8 +17,8 @@ A coredns plugin to block domains/query.
     }
 
     blocked {
-        # bloom filter capacity & rate. default: 300_000 0.01
-        size_rate 300_000 0.01
+        # bloom filter capacity & rate. default: 250_000 0.001
+        size_rate 250_000 0.001
     
         # enable log, remove is disable
         log

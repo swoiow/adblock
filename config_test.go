@@ -57,6 +57,8 @@ func TestCacheByLocal(t *testing.T) {
 	var items = []rule{
 		{name: "baidu.com", result: false},
 		{name: "reddit.com", result: false},
+		{name: "xhscdn.com", result: false},
+		{name: "*.xhscdn.com", result: false},
 	}
 
 	for _, tt := range items {

@@ -18,8 +18,8 @@ import (
 
 func NewConfigs() *Configs {
 	return &Configs{
-		Size: 300_000,
-		Rate: 0.01,
+		Size: 250_000,
+		Rate: 0.001,
 
 		log:        false,
 		hostnameQ:  REFUSED,
@@ -164,7 +164,7 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 
 			if len(lines) > 0 {
 				if configs.wFilter == nil {
-					configs.wFilter = bloom.NewWithEstimates(100_000, 0.01)
+					configs.wFilter = bloom.NewWithEstimates(100_000, 0.001)
 					log.Info("[Settings] whiteList mode is enabled")
 				}
 
