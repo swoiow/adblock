@@ -75,10 +75,10 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Public latest rules.dat
-        uses: softprops/action-gh-release@v1
-        with:
-          name: "latest"
-          prerelease: true
-          files: |
-            rules.dat
+#      - name: Public latest rules.dat
+#        uses: softprops/action-gh-release@v1
+#        with:
+#          name: "latest"
+#          prerelease: true
+#          files: |
+#            rules.dat
