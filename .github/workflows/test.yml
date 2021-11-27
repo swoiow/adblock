@@ -1,7 +1,7 @@
 name: TEST
 
 concurrency:
-  group: ci-TEST
+  group: ci-TEST-${{ github.ref}}
   cancel-in-progress: true
 
 on:
