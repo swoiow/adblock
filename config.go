@@ -12,12 +12,13 @@ import (
 	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/caddy"
 	"github.com/coredns/coredns/plugin"
+	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/miekg/dns"
 	"github.com/swoiow/blocked/parsers"
 )
 
 func NewConfigs() *Configs {
-	return &Configs{
+	c := &Configs{
 		Size: 250_000,
 		Rate: 0.001,
 
@@ -30,6 +31,9 @@ func NewConfigs() *Configs {
 
 		wildcardMode: false,
 	}
+
+	c.blockQtype[dns.TypeANY] = CreateNXDOMAIN
+	return c
 }
 
 func parseConfiguration(c *caddy.Controller) (*Configs, error) {
@@ -216,7 +220,7 @@ func LoadRuleByLocal(path string, filter *bloom.BloomFilter, strictMode bool) er
 	}
 	c, _ := addLines2filter(lines, filter)
 
-	log.Infof(loadLogFmt, "rules", c, path)
+	clog.Infof(loadLogFmt, "rules", c, path)
 	return nil
 }
 
@@ -230,7 +234,7 @@ func LoadRuleByRemote(uri string, filter *bloom.BloomFilter) error {
 	// handle by parsers
 	lines = parsers.FuzzyParser(lines, domainMinLength)
 	c, _ := addLines2filter(lines, filter)
-	log.Infof(loadLogFmt, "rules", c, uri)
+	clog.Infof(loadLogFmt, "rules", c, uri)
 	return nil
 }
 
@@ -245,7 +249,7 @@ func LoadCacheByRemote(uri string, filter *bloom.BloomFilter) error {
 	if err != nil {
 		return err
 	}
-	log.Infof(loadLogFmt, "cache", filter.ApproximatedSize(), uri)
+	clog.Infof(loadLogFmt, "cache", filter.ApproximatedSize(), uri)
 
 	return nil
 }
@@ -262,7 +266,7 @@ func LoadCacheByLocal(path string, filter *bloom.BloomFilter) error {
 		return err
 	}
 
-	log.Infof(loadLogFmt, "cache", filter.ApproximatedSize(), path)
+	clog.Infof(loadLogFmt, "cache", filter.ApproximatedSize(), path)
 	return nil
 }
 

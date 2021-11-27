@@ -182,7 +182,7 @@ func TestBlocked_ServeDNS_AAAA_SOA(t *testing.T) {
 	}
 }
 
-func TestBlocked_ServeDNS_ANY_NEXT_PLUGIN(t *testing.T) {
+func TestBlocked_ServeDNS_ANY_NameError_in_default(t *testing.T) {
 	req := new(dns.Msg)
 	req.SetQuestion("example.com.", dns.TypeANY)
 
@@ -193,7 +193,11 @@ func TestBlocked_ServeDNS_ANY_NEXT_PLUGIN(t *testing.T) {
 	rec := dnstest.NewRecorder(&test.ResponseWriter{})
 	_, err := c.ServeDNS(context.TODO(), rec, req)
 
-	if !strings.Contains(err.Error(), "no next plugin found") {
+	if err != nil {
+		t.Errorf("Expected no error, but got %q", err)
+	}
+
+	if rec.Msg.Rcode != dns.RcodeNameError {
 		t.Errorf("assert failed")
 	}
 }

@@ -62,7 +62,8 @@ jobs:
         run: |
           go get
           go get -t github.com/swoiow/blocked/parsers
-          make build-rules
+          make build-rules > etl-result.txt
+          cat etl-result.txt
 
       - name: Test
         run: go test ./...
@@ -75,10 +76,12 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-#      - name: Public latest rules.dat
-#        uses: softprops/action-gh-release@v1
-#        with:
-#          name: "latest"
-#          prerelease: true
-#          files: |
-#            rules.dat
+      - name: Public rules.dat (To Alpha Tag)
+        uses: softprops/action-gh-release@v1
+        with:
+          name: alpha
+          tag_name: alpha
+          prerelease: true
+          body_path: etl-result.txt
+          files: |
+            rules.dat

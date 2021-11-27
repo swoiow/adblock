@@ -18,6 +18,12 @@ const (
 	rulesetData = "rules.dat"
 )
 
+var (
+	defaultConfigs = blocked.NewConfigs()
+	Size           = uint(defaultConfigs.Size)
+	Rate           = defaultConfigs.Rate
+)
+
 type githubIssue struct {
 	Body string `json:"body"`
 }
@@ -63,10 +69,7 @@ func fetchUrls() []string {
 }
 
 func createRuleset(ruleUrls []string) {
-	defaultConfigs := blocked.NewConfigs()
-
-	ruleset := make(map[string]int8)
-	filter := bloom.NewWithEstimates(uint(defaultConfigs.Size), defaultConfigs.Rate)
+	ruleSet := make(map[string]bool)
 	for _, ruleUrl := range ruleUrls {
 		lines, err := blocked.UrlToLines(ruleUrl)
 		if err != nil {
@@ -74,21 +77,26 @@ func createRuleset(ruleUrls []string) {
 		}
 
 		// handle by parsers
-		last := len(ruleset)
+		last := len(ruleSet)
 		lines = parsers.FuzzyParser(lines, 3)
 		for _, line := range lines {
 			domain := strings.ToLower(strings.TrimSpace(line))
 
-			if _, ok := ruleset[domain]; !ok {
-				filter.TestAndAddString(domain)
-				ruleset[domain] = 1
+			if _, ok := ruleSet[domain]; !ok {
+				ruleSet[domain] = true
 			}
 		}
 
-		fmt.Printf("Loaded %s (num:%v) from `%s`.\n", "rules", len(ruleset)-last, ruleUrl)
+		fmt.Printf("Loaded %s (num:%v) from `%s`.\n", "rules", len(ruleSet)-last, ruleUrl)
 	}
 
-	fmt.Printf("Total load: %v", len(ruleset))
+	Size = uint(1.05 * float64(len(ruleSet)))
+	filter := bloom.NewWithEstimates(Size, Rate)
+	for r := range ruleSet {
+		filter.AddString(r)
+	}
+
+	fmt.Printf("Total load: %v - Filter save: %v\n", len(ruleSet), filter.ApproximatedSize())
 
 	// Save: rulesetData
 	wFile, err := os.Create(rulesetData)
@@ -108,8 +116,8 @@ func createRuleset(ruleUrls []string) {
 	}
 	defer wFile.Close()
 
-	rules := make([]string, 0, len(ruleset))
-	for k := range ruleset {
+	rules := make([]string, 0, len(ruleSet))
+	for k := range ruleSet {
 		rules = append(rules, k)
 	}
 	wFile.WriteString(strings.Join(rules, "\n"))

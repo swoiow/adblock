@@ -93,3 +93,4 @@ A coredns plugin to block domains/query.
 ## Changelog & Note
 
 - [Wiki](https://github.com/swoiow/blocked/wiki/Changelog-&-Note)
+- [Example](https://github.com/swoiow/blocked/wiki/Sample)
