@@ -24,6 +24,9 @@ build-rules:
 	go run .github/etl.go
 	echo `date +%F`
 
+build-inside-rules:
+	go run .github/inside/etl.go
+
 build-image:
 	docker build -t runtime \
 		-f .github/Dockerfile .
