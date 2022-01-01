@@ -76,11 +76,11 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Public rules.dat (To Alpha Tag)
+      - name: Public rules.dat
         uses: softprops/action-gh-release@v1
         with:
-          name: alpha
-          tag_name: alpha
+          name: latest data
+          tag_name: updated
           prerelease: true
           body_path: etl-result.txt
           files: |

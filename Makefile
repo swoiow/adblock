@@ -22,6 +22,7 @@ generate:
 
 build-rules:
 	go run .github/etl.go
+	echo `date +%F`
 
 build-image:
 	docker build -t runtime \
