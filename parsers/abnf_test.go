@@ -12,6 +12,8 @@ func TestABNFParser(t *testing.T) {
 		expect []string
 	}{
 		{domain: "||example.com^", expect: []string{"*.example.com", "example.com"}},
+		{domain: "||example.com^$third-party", expect: nil},
+		{domain: "||example.com/example^", expect: nil},
 	}
 	for _, tt := range tests {
 		t.Run("tt_"+tt.domain, func(t *testing.T) {

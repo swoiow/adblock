@@ -139,6 +139,12 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 		case "black_list":
 			inputString := strings.TrimSpace(args[0])
 
+			if strings.HasPrefix(strings.ToLower(inputString), "abnf+") {
+				inputString = strings.TrimPrefix(inputString, "abnf+")
+				_ = LoadRuleByRemoteWithParser(inputString, configs.filter, parsers.ABNFParser)
+				break
+			}
+
 			strictMode := true
 			if strings.HasPrefix(strings.ToLower(inputString), "local+") {
 				strictMode = false
@@ -234,6 +240,24 @@ func LoadRuleByRemote(uri string, filter *bloom.BloomFilter) error {
 	// handle by parsers
 	lines = parsers.FuzzyParser(lines, domainMinLength)
 	c, _ := addLines2filter(lines, filter)
+	clog.Infof(loadLogFmt, "rules", c, uri)
+	return nil
+}
+
+func LoadRuleByRemoteWithParser(uri string, filter *bloom.BloomFilter, parser func(d string) []string) error {
+	lines, err := UrlToLines(uri)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	c := 0
+	for _, line := range lines {
+		l := parser(line)
+		if l != nil {
+			addLines2filter(l, filter)
+			c += len(l)
+		}
+	}
 	clog.Infof(loadLogFmt, "rules", c, uri)
 	return nil
 }
