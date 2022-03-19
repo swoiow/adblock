@@ -1,0 +1,7 @@
+activate.adobe.com
+hlrcv.stage.adobe.com
+lm.licenses.adobe.com
+lmlicenses.wip4.adobe.com
+na1r.services.adobe.com
+na2m-pr.licenses.adobe.com
+practivate.adobe.com

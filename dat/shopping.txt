@@ -1,0 +1,10 @@
+*.jddebug.com
+*.jddebugger.com
+jddebug.com
+jddebugger.com
+lives.jd.com
+live-ws1.jd.com
+live-ws2.jd.com
+log-dd.jd.com
+ns1.jdcache.com
+vod.300hu.com
