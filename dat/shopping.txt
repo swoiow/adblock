@@ -1,6 +1,5 @@
 *.jddebug.com
 *.jddebugger.com
-jddebug.com
 jddebugger.com
 lives.jd.com
 live-ws1.jd.com
