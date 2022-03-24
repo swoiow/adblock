@@ -5,6 +5,7 @@
 *.nstool.yqkk.link
 clientlog3.music.163.com
 huyaimg.msstatic.com
+lbs.netease.im
 nstool.netease.com
 nstool.yqkk.link
 p1.music.126.net
