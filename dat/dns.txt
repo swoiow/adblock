@@ -1,3 +1,4 @@
+*.tdnsv6.com
 *.alidns.com
 alidns.com
 dns.google
