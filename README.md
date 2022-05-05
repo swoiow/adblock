@@ -1,6 +1,6 @@
 # blocked 
 [![TEST](https://github.com/swoiow/blocked/actions/workflows/test.yml/badge.svg)](https://github.com/swoiow/blocked/actions/workflows/test.yml)
-[![RELEASE](https://github.com/swoiow/blocked/actions/workflows/dist.yml/badge.svg)](https://github.com/swoiow/blocked/actions/workflows/dist.yml)
+[![RELEASE (in docker)](https://github.com/swoiow/blocked/actions/workflows/dist-by-docker.yml/badge.svg)](https://github.com/swoiow/blocked/actions/workflows/dist-by-docker.yml)
 
 A coredns plugin to block domains/query.
 
