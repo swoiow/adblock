@@ -4,3 +4,4 @@ alidns.com
 dns.google
 dns.weixin.qq.com
 doh.pub
+dns.qq.com

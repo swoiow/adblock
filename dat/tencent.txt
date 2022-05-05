@@ -11,6 +11,7 @@ apps.idata.qq.com
 cgi.connect.qq.com
 cl.wb.qq.com
 dns.weixin.qq.com
+dns.qq.com
 gicp.qq.com
 gj.qq.com
 guanjia.qq.com
