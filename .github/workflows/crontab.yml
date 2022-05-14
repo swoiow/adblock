@@ -17,12 +17,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
           fetch-depth: 1
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v3
         with:
           python-version: 3.8
 
@@ -40,16 +40,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.17
+          go-version: 1.18
 
       - name: Checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 1
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
             ~/.cache/go-build
@@ -70,7 +70,7 @@ jobs:
         run: go test ./...
 
       - name: Upload rules.dat
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: rules.dat
           path: rules.dat
@@ -78,7 +78,7 @@ jobs:
           retention-days: 7
 
       - name: Upload inside.dat
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: inside.dat
           path: inside.dat

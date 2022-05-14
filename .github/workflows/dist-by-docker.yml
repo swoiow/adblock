@@ -33,11 +33,11 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 1
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
             ~/.cache/go-build
@@ -101,7 +101,7 @@ jobs:
 
       # ===== Upload STEP =====
       - name: Upload Linux Arm64
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: ${{ github.ref != 'refs/heads/main' }}
         with:
           name: coredns_linux_arm64.zip
@@ -109,7 +109,7 @@ jobs:
           retention-days: 3
 
       - name: Upload Linux Amd64
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: ${{ github.ref != 'refs/heads/main' }}
         with:
           name: coredns_linux_amd64.zip
@@ -117,7 +117,7 @@ jobs:
           retention-days: 3
 
       - name: Upload Windows x64
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: ${{ github.ref != 'refs/heads/main' }}
         with:
           name: coredns_x64.zip

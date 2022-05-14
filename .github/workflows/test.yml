@@ -21,12 +21,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
           fetch-depth: 1
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
             ~/.cache/go-build
@@ -41,11 +41,12 @@ jobs:
           make build-rules
 
       - name: Test
-        run: go get -t github.com/swoiow/blocked/parsers
+        run: |
+          go get -t github.com/swoiow/blocked/parsers
           go test ./...
 
       - name: Public rules.dat
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: rules.dat
           path: rules.dat
