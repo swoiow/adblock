@@ -41,7 +41,8 @@ jobs:
           make build-rules
 
       - name: Test
-        run: go test ./...
+        run: go get -t github.com/swoiow/blocked/parsers
+          go test ./...
 
       - name: Public rules.dat
         uses: actions/upload-artifact@v2
