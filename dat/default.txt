@@ -2,6 +2,8 @@
 *.account.jetbrains.com
 *.alidns.com
 *.analytics.meituan.net
+wslog.chinanetcenter.com
+*.wslog.chinanetcenter.com
 *.app-measurement.com
 *.cmpassport.com
 *.data.kuiniuca.com
