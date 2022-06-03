@@ -134,7 +134,7 @@ func testDAT() {
 	counter := 0
 	bottle := bloom.NewWithEstimates(uint(Size), Cap)
 
-	blocked.LoadCacheByLocal(rulesetData, bottle)
+	blocked.LocalCacheLoader(rulesetData, bottle)
 
 	lines, _ := blocked.FileToLines(rulesetPath)
 

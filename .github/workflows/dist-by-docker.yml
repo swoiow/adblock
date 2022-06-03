@@ -70,7 +70,8 @@ jobs:
             -v ${PWD}:/dist \
             runtime \
             make build_arm
-          zip -9 coredns_arm.zip coredns_arm
+          cp coredns_arm coredns
+          zip -9 coredns_arm.zip coredns
 
       - name: Build Amd 64
         if: ${{ github.ref != 'refs/heads/main' }}
@@ -83,7 +84,8 @@ jobs:
             -v ${PWD}:/dist \
             runtime \
             make build_amd
-          zip -9 coredns_amd.zip coredns_amd
+          cp coredns_amd coredns
+          zip -9 coredns_amd.zip coredns
 
       - name: Build Win 64
         if: ${{ github.ref != 'refs/heads/main' }}
@@ -96,7 +98,8 @@ jobs:
             -v ${PWD}:/dist \
             runtime \
             make build_win_x64
-          zip -9 coredns_x64.zip coredns_x64.exe
+          cp coredns_x64.exe coredns.exe
+          zip -9 coredns_x64.zip coredns.exe
 
 
       # ===== Upload STEP =====

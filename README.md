@@ -17,6 +17,10 @@ A coredns plugin to block domains/query.
     }
 
     blocked {
+        # to reload cache_data/black_list/white_list, default: 5days. 
+        # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+        reload 86400s
+        
         # bloom filter capacity & rate. default: 250_000 0.001
         size_rate 250_000 0.001
     

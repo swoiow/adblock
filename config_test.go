@@ -27,7 +27,7 @@ func TestCreateCache(t *testing.T) {
 	filter := bloom.NewWithEstimates(uint(defaultConfigs.Size), defaultConfigs.Rate)
 
 	for _, rule := range *rules {
-		_ = LoadRuleByLocal(rule, filter, false)
+		_ = LocalRuleLoader(rule, filter, false)
 	}
 
 	wFile, err := os.Create(rulesetData)
@@ -44,7 +44,7 @@ func TestCreateCache(t *testing.T) {
 func TestCacheByLocal(t *testing.T) {
 	filter := bloom.NewWithEstimates(uint(defaultConfigs.Size), defaultConfigs.Rate)
 
-	err := LoadCacheByLocal(rulesetData, filter)
+	err := LocalCacheLoader(rulesetData, filter)
 	if err != nil {
 		panic(err)
 	}
@@ -73,7 +73,7 @@ func TestCacheByLocal(t *testing.T) {
 func TestCacheByFile(t *testing.T) {
 	filter := bloom.NewWithEstimates(uint(defaultConfigs.Size), defaultConfigs.Rate)
 
-	err := LoadCacheByLocal(rulesetData, filter)
+	err := LocalCacheLoader(rulesetData, filter)
 	if err != nil {
 		panic(err)
 	}

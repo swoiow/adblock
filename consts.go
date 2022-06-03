@@ -1,7 +1,10 @@
 package blocked
 
 import (
-	"github.com/bits-and-blooms/bloom/v3"
+	"sync"
+	"time"
+
+	bloom "github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/coredns/plugin"
 	"github.com/miekg/dns"
 )
@@ -86,6 +89,8 @@ type Blocked struct {
 }
 
 type Configs struct {
+	sync.RWMutex
+
 	Size int
 	Rate float64
 
@@ -98,4 +103,11 @@ type Configs struct {
 
 	filter  *bloom.BloomFilter
 	wFilter *bloom.BloomFilter
+
+	cacheDataPath string
+	whiteRules    []string
+	blackRules    []string
+
+	// options
+	interval time.Duration
 }

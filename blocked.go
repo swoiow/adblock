@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	bloom "github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metrics"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
@@ -64,6 +65,35 @@ func (app Blocked) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 		missesCount.WithLabelValues(metrics.WithServer(ctx)).Inc()
 		return plugin.NextOrFailure(pluginName, app.Next, ctx, w, r)
 	}
+}
+
+func (app Blocked) reloadConfig() {
+	log.Infof("[reload]: %s", time.Now())
+	bFilter := bloom.NewWithEstimates(uint(app.Configs.Size), app.Configs.Rate)
+	if app.Configs.cacheDataPath != "" {
+		handleCacheData(app.Configs.cacheDataPath, bFilter)
+	}
+
+	if len(app.Configs.blackRules) > 0 {
+		for _, rule := range app.Configs.blackRules {
+			handleBlackRules(rule, bFilter)
+		}
+	}
+
+	if len(app.Configs.whiteRules) > 0 {
+		wFilter := bloom.NewWithEstimates(100_000, 0.001)
+		for _, rule := range app.Configs.whiteRules {
+			handleWhiteRules(rule, wFilter)
+		}
+
+		app.Configs.Lock()
+		app.Configs.wFilter = wFilter
+		app.Configs.Unlock()
+	}
+
+	app.Configs.Lock()
+	app.Configs.filter = bFilter
+	app.Configs.Unlock()
 }
 
 func (app Blocked) Name() string { return pluginName }

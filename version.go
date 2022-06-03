@@ -2,5 +2,5 @@ package blocked
 
 const (
 	pluginName = "blocked"
-	pluginVers = "1.1.4"
+	pluginVer  = "1.1.4"
 )

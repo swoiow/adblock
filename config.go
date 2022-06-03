@@ -8,8 +8,9 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/bits-and-blooms/bloom/v3"
+	bloom "github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/caddy"
 	"github.com/coredns/coredns/plugin"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
@@ -30,13 +31,20 @@ func NewConfigs() *Configs {
 		wFilter: nil,
 
 		wildcardMode: false,
+
+		cacheDataPath: "",
+		whiteRules:    []string{},
+		blackRules:    []string{},
+
+		interval: time.Duration(5 * 24 * time.Hour),
 	}
 
 	c.blockQtype[dns.TypeANY] = CreateNXDOMAIN
 	return c
 }
 
-func parseConfiguration(c *caddy.Controller) (*Configs, error) {
+func parseConfiguration(c *caddy.Controller) (Blocked, error) {
+	runtimeConfig := Blocked{}
 	configs := NewConfigs()
 	configs.filter = bloom.NewWithEstimates(uint(configs.Size), configs.Rate)
 
@@ -45,23 +53,36 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 		args := c.RemainingArgs()
 
 		switch value {
+		case "interval", "reload":
+			if len(args) != 1 {
+				return runtimeConfig, c.Errf("reload needs a duration (zero seconds to disable)")
+			}
+
+			interval, err := time.ParseDuration(args[0])
+			if err != nil || interval < 0 {
+				return runtimeConfig, plugin.Error(pluginName, c.Errf("pares size error: %s", err))
+			}
+			configs.interval = interval
+			log.Info("[Settings] reload is enabled")
+			break
+
 		case "size_rate":
 			switch len(args) {
 			case 1:
 				size, err := strconv.Atoi(args[0])
 				if err != nil {
-					return nil, plugin.Error(pluginName, c.Errf("pares size error: %s", err))
+					return runtimeConfig, plugin.Error(pluginName, c.Errf("pares size error: %s", err))
 				}
 				configs.Size = size
 			case 2:
 				size, err := strconv.Atoi(args[0])
 				if err != nil {
-					return nil, plugin.Error(pluginName, c.Errf("pares size error: %s", err))
+					return runtimeConfig, plugin.Error(pluginName, c.Errf("pares size error: %s", err))
 				}
 				configs.Size = size
 				rate, err := strconv.ParseFloat(args[1], 32)
 				if err != nil {
-					return nil, plugin.Error(pluginName, c.Errf("pares capacity error: %s", err))
+					return runtimeConfig, plugin.Error(pluginName, c.Errf("pares capacity error: %s", err))
 				}
 				configs.Rate = rate
 			}
@@ -122,69 +143,92 @@ func parseConfiguration(c *caddy.Controller) (*Configs, error) {
 			break
 
 		case "wildcard":
-			log.Info("[Settings] wildcard mode is enabled")
 			configs.wildcardMode = true
+			log.Info("[Settings] wildcard mode is enabled")
 			break
 
 		case "cache_data":
-			inputString := strings.TrimSpace(args[0])
-			if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
-				strings.HasPrefix(strings.ToLower(inputString), "https://") {
-				_ = LoadCacheByRemote(inputString, configs.filter)
-			} else {
-				_ = LoadCacheByLocal(inputString, configs.filter)
+			if configs.cacheDataPath != "" {
+				return runtimeConfig, plugin.Error(pluginName, c.Err("multi cache_data detect"))
 			}
+
+			inputString := strings.TrimSpace(args[0])
+			originStr := inputString
+			handleCacheData(inputString, configs.filter)
+			configs.cacheDataPath = originStr
 			break
 
 		case "black_list":
 			inputString := strings.TrimSpace(args[0])
-
-			strictMode := true
-			if strings.HasPrefix(strings.ToLower(inputString), "local+") {
-				strictMode = false
-				inputString = strings.TrimPrefix(inputString, "local+")
-			}
-
-			if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
-				strings.HasPrefix(strings.ToLower(inputString), "https://") {
-				_ = LoadRuleByRemote(inputString, configs.filter)
-			} else {
-				_ = LoadRuleByLocal(inputString, configs.filter, strictMode)
-			}
+			originStr := inputString
+			handleBlackRules(inputString, configs.filter)
+			configs.blackRules = append(configs.blackRules, originStr)
 			break
 
 		case "white_list":
 			inputString := strings.TrimSpace(args[0])
-
-			minLen := domainMinLength
-			var lines []string
-			if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
-				strings.HasPrefix(strings.ToLower(inputString), "https://") {
-				lines, _ = UrlToLines(inputString)
-			} else {
-				lines, _ = FileToLines(inputString)
-				minLen = 1
-			}
-
-			if len(lines) > 0 {
-				if configs.wFilter == nil {
-					configs.wFilter = bloom.NewWithEstimates(100_000, 0.001)
-					log.Info("[Settings] whiteList mode is enabled")
-				}
-
-				addLines2filter(parsers.LooseParser(lines, parsers.DomainParser, minLen), configs.wFilter)
-			}
+			originStr := inputString
+			configs.wFilter = bloom.NewWithEstimates(100_000, 0.001)
+			handleWhiteRules(inputString, configs.wFilter)
+			configs.whiteRules = append(configs.whiteRules, originStr)
 			break
 
 		case "{", "}":
 			break
 
 		default:
-			return nil, c.Errf("unknown property '%s'", c.Val())
+			return runtimeConfig, c.Errf("unknown property '%s'", c.Val())
 		}
 	}
 
-	return configs, nil
+	runtimeConfig.Configs = configs
+	return runtimeConfig, nil
+}
+
+func handleCacheData(inputString string, filter *bloom.BloomFilter) {
+	if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
+		strings.HasPrefix(strings.ToLower(inputString), "https://") {
+		_ = RemoteCacheLoader(inputString, filter)
+	} else {
+		_ = LocalCacheLoader(inputString, filter)
+	}
+}
+
+func handleBlackRules(inputString string, filter *bloom.BloomFilter) {
+	strictMode := true
+	if strings.HasPrefix(strings.ToLower(inputString), "local+") {
+		strictMode = false
+		inputString = strings.TrimPrefix(inputString, "local+")
+	}
+
+	if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
+		strings.HasPrefix(strings.ToLower(inputString), "https://") {
+		_ = RemoteRuleLoader(inputString, filter)
+
+	} else {
+		_ = LocalRuleLoader(inputString, filter, strictMode)
+	}
+}
+
+func handleWhiteRules(inputString string, wFilter *bloom.BloomFilter) {
+	minLen := domainMinLength
+	var lines []string
+	if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
+		strings.HasPrefix(strings.ToLower(inputString), "https://") {
+		lines, _ = UrlToLines(inputString)
+	} else {
+		lines, _ = FileToLines(inputString)
+		minLen = 1
+	}
+
+	if len(lines) > 0 {
+		if wFilter == nil {
+			wFilter = bloom.NewWithEstimates(100_000, 0.001)
+			log.Info("[Settings] whiteList mode is enabled")
+		}
+
+		addLines2filter(parsers.LooseParser(lines, parsers.DomainParser, minLen), wFilter)
+	}
 }
 
 /*
@@ -201,7 +245,7 @@ func addLines2filter(lines []string, filter *bloom.BloomFilter) (int, *bloom.Blo
 	return c, filter
 }
 
-func LoadRuleByLocal(path string, filter *bloom.BloomFilter, strictMode bool) error {
+func LocalRuleLoader(path string, filter *bloom.BloomFilter, strictMode bool) error {
 	rf, err := os.Open(path)
 	if err != nil {
 		log.Error(err)
@@ -224,7 +268,7 @@ func LoadRuleByLocal(path string, filter *bloom.BloomFilter, strictMode bool) er
 	return nil
 }
 
-func LoadRuleByRemote(uri string, filter *bloom.BloomFilter) error {
+func RemoteRuleLoader(uri string, filter *bloom.BloomFilter) error {
 	lines, err := UrlToLines(uri)
 	if err != nil {
 		log.Error(err)
@@ -238,7 +282,7 @@ func LoadRuleByRemote(uri string, filter *bloom.BloomFilter) error {
 	return nil
 }
 
-func LoadCacheByRemote(uri string, filter *bloom.BloomFilter) error {
+func RemoteCacheLoader(uri string, filter *bloom.BloomFilter) error {
 	resp, err := http.Get(uri)
 	if err != nil {
 		return err
@@ -254,7 +298,7 @@ func LoadCacheByRemote(uri string, filter *bloom.BloomFilter) error {
 	return nil
 }
 
-func LoadCacheByLocal(path string, filter *bloom.BloomFilter) error {
+func LocalCacheLoader(path string, filter *bloom.BloomFilter) error {
 	rf, err := os.Open(path)
 	if err != nil {
 		return err
