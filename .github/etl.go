@@ -6,9 +6,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
-	"github.com/bits-and-blooms/bloom/v3"
+	bloom "github.com/seiflotfy/cuckoofilter"
 	"github.com/swoiow/blocked"
 	"github.com/swoiow/blocked/parsers"
 )
@@ -19,9 +20,7 @@ const (
 )
 
 var (
-	defaultConfigs = blocked.NewConfigs()
-	Size           = uint(defaultConfigs.Size)
-	Rate           = defaultConfigs.Rate
+	Size = 500_000
 )
 
 type githubIssue struct {
@@ -68,7 +67,7 @@ func fetchUrls() []string {
 	return bucket
 }
 
-func createRuleset(ruleUrls []string) {
+func createRuleSet(ruleUrls []string) map[string]bool {
 	ruleSet := make(map[string]bool)
 	for _, ruleUrl := range ruleUrls {
 		lines, err := blocked.UrlToLines(ruleUrl)
@@ -82,6 +81,11 @@ func createRuleset(ruleUrls []string) {
 		for _, line := range lines {
 			domain := strings.ToLower(strings.TrimSpace(line))
 
+			if strings.Count(domain, ".") >= 3 {
+				d := strings.Split(domain, ".")
+				domain = strings.Join(d[len(d)-3:], ".")
+			}
+
 			if _, ok := ruleSet[domain]; !ok {
 				ruleSet[domain] = true
 			}
@@ -89,16 +93,17 @@ func createRuleset(ruleUrls []string) {
 
 		fmt.Printf("Loaded %s (num:%v) from `%s`.\n", "rules", len(ruleSet)-last, ruleUrl)
 	}
+	return ruleSet
+}
 
-	Size = uint(1.05 * float64(len(ruleSet)))
-	filter := bloom.NewWithEstimates(Size, Rate)
-	for r := range ruleSet {
-		filter.AddString(r)
+func saveAsDat(ruleSet map[string]bool) {
+	filter := bloom.NewFilter(uint(Size))
+	for rule := range ruleSet {
+		filter.InsertUnique([]byte(rule))
 	}
 
-	fmt.Printf("Total load: %v - Filter save: %v\n", len(ruleSet), filter.ApproximatedSize())
+	fmt.Printf("Total load: %v - Filter save: %v\n", len(ruleSet), filter.Count())
 
-	// Save: rulesetData
 	wFile, err := os.Create(rulesetData)
 	if err != nil {
 		panic(err)
@@ -106,15 +111,15 @@ func createRuleset(ruleUrls []string) {
 	}
 	defer wFile.Close()
 
-	_, err = filter.WriteTo(wFile)
+	wFile.Write(filter.Encode())
+}
 
-	// Save: rulesetPath
-	wFile, err = os.Create(rulesetPath)
+func saveAsTxt(ruleSet map[string]bool) {
+	wFile, err := os.Create(rulesetPath)
 	if err != nil {
 		panic(err)
 		os.Exit(1)
 	}
-	defer wFile.Close()
 
 	rules := make([]string, 0, len(ruleSet))
 	for k := range ruleSet {
@@ -123,6 +128,119 @@ func createRuleset(ruleUrls []string) {
 	wFile.WriteString(strings.Join(rules, "\n"))
 }
 
+type domains []string
+
+// func createRulesetV2(ruleUrls []string) {
+// 	ruleSet := make(map[string]domains)
+//
+// 	for _, ruleUrl := range ruleUrls {
+// 		lines, err := blocked.UrlToLines(ruleUrl)
+// 		if err != nil {
+// 			panic(err)
+// 		}
+//
+// 		// handle by parsers
+// 		count := 0
+// 		lines = parsers.FuzzyParser(lines, 3)
+// 		for _, line := range lines {
+// 			originDomain := strings.ToLower(strings.TrimSpace(line))
+//
+// 			lv3Domain := originDomain
+// 			if strings.Count(originDomain, ".") >= 4 {
+// 				d := strings.Split(originDomain, ".")
+// 				lv3Domain = strings.Join(d[len(d)-4:], ".")
+// 			}
+//
+// 			if !slices.Contains(ruleSet[lv3Domain], originDomain) {
+// 				ruleSet[lv3Domain] = append(ruleSet[lv3Domain], originDomain)
+// 				count += 1
+// 			}
+// 		}
+//
+// 		// fmt.Printf("Loaded %s (num:%v) from `%s`.\n", "rules", count, ruleUrl)
+// 	}
+//
+// 	for s, d := range ruleSet {
+// 		fmt.Printf("%s, %v\n", s, len(d))
+// 	}
+// }
+
+func CacheRule(ruleUrls []string) {
+	for _, ruleUrl := range ruleUrls {
+		lines, err := blocked.UrlToLines(ruleUrl)
+
+		fn := strings.Split(ruleUrl, "/")
+		fn = fn[len(fn)-1:]
+		wFile, err := os.Create(strings.Join([]string{".github", "rules", fn[0]}, "/"))
+		if err != nil {
+			panic(err)
+			os.Exit(1)
+		}
+		defer wFile.Close()
+
+		wFile.WriteString(strings.Join(lines, "\n"))
+
+	}
+}
+
+func testDat() error {
+	counter := 0
+	rf, err := os.Open(rulesetData)
+	if err != nil {
+		return err
+	}
+	defer rf.Close()
+
+	body, err := ioutil.ReadAll(rf)
+	filter, err := bloom.Decode(body)
+	if err != nil {
+		return err
+	}
+
+	lines, _ := blocked.FileToLines(rulesetPath)
+
+	for _, line := range lines {
+		if filter.Lookup([]byte(line)) {
+			counter += 1
+		} else {
+			fmt.Println(line)
+		}
+	}
+
+	fmt.Println(filter.Count(), counter)
+	return nil
+}
+
 func main() {
-	createRuleset(fetchUrls())
+	selected := 1
+	if v := os.Getenv("ETL_MODE"); v != "" {
+		selected, _ = strconv.Atoi(v)
+	}
+
+	switch selected {
+
+	// 1  for create rules.dat
+	case 1:
+		ruleSet := createRuleSet(fetchUrls())
+		saveAsDat(ruleSet)
+		saveAsTxt(ruleSet)
+		return
+
+	// 2 for fetch data rules data
+	case 2:
+		// createRulesetV2(fetchUrls())
+		return // 2 for fetch data rules data
+
+	// 3 for download all rule in local
+	case 3:
+		CacheRule(fetchUrls())
+		return
+
+	case 4:
+		_ = testDat()
+		return
+
+	default:
+		return
+	}
 }

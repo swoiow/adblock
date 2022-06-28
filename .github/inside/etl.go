@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 
-	"github.com/bits-and-blooms/bloom/v3"
+	cuckoo "github.com/seiflotfy/cuckoofilter"
 	"github.com/swoiow/blocked"
 	"github.com/swoiow/blocked/parsers"
 )
@@ -16,45 +18,8 @@ const (
 )
 
 var (
-	Size = 100_000
-	Cap  = 0.001
+	Size = 500_000
 )
-
-func generateDAT(rules []string) {
-	filter := bloom.NewWithEstimates(uint(Size), Cap)
-
-	for _, rule := range rules {
-		filter.AddString(rule)
-	}
-
-	// fmt.Printf("Total load: %v", len(rules))
-
-	// Save: rulesetData
-	wFile, err := os.Create(rulesetData)
-	if err != nil {
-		panic(err)
-		os.Exit(1)
-	}
-	defer wFile.Close()
-
-	_, err = filter.WriteTo(wFile)
-
-	fmt.Printf("\nfilterK: %v - filterCap:%s. filter loads: %v", filter.K(), filter.Cap(), filter.ApproximatedSize())
-
-	// // Save: rulesetPath
-	// wFile, err = os.Create(rulesetPath)
-	// if err != nil {
-	// 	panic(err)
-	// 	os.Exit(1)
-	// }
-	// defer wFile.Close()
-	//
-	// rules := make([]string, 0, len(ruleset))
-	// for k := range ruleset {
-	// 	rules = append(rules, k)
-	// }
-	// wFile.WriteString(strings.Join(rules, "\n"))
-}
 
 func createRules(ruleUrls []string) []string {
 	ruleSet := map[string]bool{}
@@ -112,9 +77,35 @@ func createRules(ruleUrls []string) []string {
 
 	fmt.Printf("\nTotal load: %v", len(ruleSet))
 
-	Size = int(1.1 * float64(len(ruleSet)))
-
 	// Save: rulesetPath
+	rules := saveAsTxt(ruleSet)
+	return rules
+}
+
+func saveAsDat(rules []string) {
+	filter := cuckoo.NewFilter(uint(Size))
+
+	for _, rule := range rules {
+		// println(rule)
+		filter.InsertUnique([]byte(rule))
+	}
+
+	// fmt.Printf("Total load: %v", len(rules))
+
+	// Save: rulesetData
+	wFile, err := os.Create(rulesetData)
+	if err != nil {
+		panic(err)
+		os.Exit(1)
+	}
+	defer wFile.Close()
+
+	wFile.Write(filter.Encode())
+
+	fmt.Printf("filter saving : %v\n", filter.Count())
+}
+
+func saveAsTxt(ruleSet map[string]bool) []string {
 	wFile, err := os.Create(rulesetPath)
 	if err != nil {
 		panic(err)
@@ -130,27 +121,38 @@ func createRules(ruleUrls []string) []string {
 	return rules
 }
 
-func testDAT() {
+func testDat() error {
 	counter := 0
-	bottle := bloom.NewWithEstimates(uint(Size), Cap)
-
-	blocked.LocalCacheLoader(rulesetData, bottle)
+	rf, err := os.Open(rulesetData)
+	if err != nil {
+		return err
+	}
+	defer rf.Close()
+	body, err := ioutil.ReadAll(rf)
+	bottle, err := cuckoo.Decode(body)
+	if err != nil {
+		return err
+	}
 
 	lines, _ := blocked.FileToLines(rulesetPath)
 
 	for _, line := range lines {
-		if bottle.TestString(line) {
+		if bottle.Lookup([]byte(line)) {
 			counter += 1
 		} else {
 			fmt.Println(line)
 		}
 	}
 
-	fmt.Println(bottle.K(), bottle.Cap(), counter)
+	fmt.Println(bottle.Count(), counter)
+	return nil
 }
 
 func main() {
 	selected := 1
+	if v := os.Getenv("ETL_MODE"); v != "" {
+		selected, _ = strconv.Atoi(v)
+	}
 
 	switch selected {
 	case 1:
@@ -158,9 +160,9 @@ func main() {
 			"https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/direct-list.txt",
 			"https://raw.githubusercontent.com/swoiow/app-domains/main/app-domains.txt",
 		})
-		generateDAT(data)
+		saveAsDat(data)
 
 	default:
-		testDAT()
+		_ = testDat()
 	}
 }

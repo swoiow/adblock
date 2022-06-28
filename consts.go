@@ -4,9 +4,9 @@ import (
 	"sync"
 	"time"
 
-	bloom "github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/coredns/plugin"
 	"github.com/miekg/dns"
+	bloom "github.com/seiflotfy/cuckoofilter"
 )
 
 type RespType int8
@@ -101,8 +101,8 @@ type Configs struct {
 	respFunc   RespFunc
 	blockQtype map[uint16]RespFunc
 
-	filter  *bloom.BloomFilter
-	wFilter *bloom.BloomFilter
+	filter  *bloom.Filter
+	wFilter *bloom.Filter
 
 	cacheDataPath string
 	whiteRules    []string

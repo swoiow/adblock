@@ -36,6 +36,8 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: Get dependence
+        env:
+          ETL_MODE: 1
         run: |
           go get
           make build-rules

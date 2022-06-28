@@ -10,17 +10,17 @@ import (
 	"strings"
 	"time"
 
-	bloom "github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/caddy"
 	"github.com/coredns/coredns/plugin"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/miekg/dns"
+	bloom "github.com/seiflotfy/cuckoofilter"
 	"github.com/swoiow/blocked/parsers"
 )
 
 func NewConfigs() *Configs {
 	c := &Configs{
-		Size: 250_000,
+		Size: 500_000,
 		Rate: 0.001,
 
 		log:        false,
@@ -46,7 +46,7 @@ func NewConfigs() *Configs {
 func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 	runtimeConfig := Blocked{}
 	configs := NewConfigs()
-	configs.filter = bloom.NewWithEstimates(uint(configs.Size), configs.Rate)
+	configs.filter = bloom.NewFilter(uint(configs.Size))
 
 	for c.Next() {
 		value := c.Val()
@@ -86,7 +86,7 @@ func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 				}
 				configs.Rate = rate
 			}
-			configs.filter = bloom.NewWithEstimates(uint(configs.Size), configs.Rate)
+			configs.filter = bloom.NewFilter(uint(configs.Size))
 			break
 
 		case "log":
@@ -154,7 +154,7 @@ func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 
 			inputString := strings.TrimSpace(args[0])
 			originStr := inputString
-			handleCacheData(inputString, configs.filter)
+			configs.filter = handleCacheData(inputString)
 			configs.cacheDataPath = originStr
 			break
 
@@ -168,7 +168,7 @@ func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 		case "white_list":
 			inputString := strings.TrimSpace(args[0])
 			originStr := inputString
-			configs.wFilter = bloom.NewWithEstimates(100_000, 0.001)
+			configs.wFilter = bloom.NewFilter(100_000)
 			handleWhiteRules(inputString, configs.wFilter)
 			configs.whiteRules = append(configs.whiteRules, originStr)
 			break
@@ -185,16 +185,17 @@ func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 	return runtimeConfig, nil
 }
 
-func handleCacheData(inputString string, filter *bloom.BloomFilter) {
+func handleCacheData(inputString string) (filter *bloom.Filter) {
 	if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
 		strings.HasPrefix(strings.ToLower(inputString), "https://") {
-		_ = RemoteCacheLoader(inputString, filter)
+		filter, _ = RemoteCacheLoader(inputString)
 	} else {
-		_ = LocalCacheLoader(inputString, filter)
+		filter, _ = LocalCacheLoader(inputString)
 	}
+	return filter
 }
 
-func handleBlackRules(inputString string, filter *bloom.BloomFilter) {
+func handleBlackRules(inputString string, filter *bloom.Filter) {
 	strictMode := true
 	if strings.HasPrefix(strings.ToLower(inputString), "local+") {
 		strictMode = false
@@ -204,13 +205,12 @@ func handleBlackRules(inputString string, filter *bloom.BloomFilter) {
 	if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
 		strings.HasPrefix(strings.ToLower(inputString), "https://") {
 		_ = RemoteRuleLoader(inputString, filter)
-
 	} else {
 		_ = LocalRuleLoader(inputString, filter, strictMode)
 	}
 }
 
-func handleWhiteRules(inputString string, wFilter *bloom.BloomFilter) {
+func handleWhiteRules(inputString string, wFilter *bloom.Filter) {
 	minLen := domainMinLength
 	var lines []string
 	if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
@@ -222,11 +222,7 @@ func handleWhiteRules(inputString string, wFilter *bloom.BloomFilter) {
 	}
 
 	if len(lines) > 0 {
-		if wFilter == nil {
-			wFilter = bloom.NewWithEstimates(100_000, 0.001)
-			log.Info("[Settings] whiteList mode is enabled")
-		}
-
+		log.Info("[Settings] whiteList mode is enabled")
 		addLines2filter(parsers.LooseParser(lines, parsers.DomainParser, minLen), wFilter)
 	}
 }
@@ -235,83 +231,14 @@ func handleWhiteRules(inputString string, wFilter *bloom.BloomFilter) {
  *   Utils
  */
 
-func addLines2filter(lines []string, filter *bloom.BloomFilter) (int, *bloom.BloomFilter) {
+func addLines2filter(lines []string, filter *bloom.Filter) (int, *bloom.Filter) {
 	c := 0
 	for _, line := range lines {
-		if !filter.TestAndAddString(strings.ToLower(strings.TrimSpace(line))) {
+		if !filter.InsertUnique([]byte(strings.ToLower(strings.TrimSpace(line)))) {
 			c += 1
 		}
 	}
 	return c, filter
-}
-
-func LocalRuleLoader(path string, filter *bloom.BloomFilter, strictMode bool) error {
-	rf, err := os.Open(path)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-	defer rf.Close()
-
-	reader := bufio.NewReader(rf)
-	contents, _ := ioutil.ReadAll(reader)
-	lines := strings.Split(string(contents), string('\n'))
-
-	if strictMode {
-		lines = parsers.FuzzyParser(lines, 1)
-	} else {
-		lines = parsers.LooseParser(lines, parsers.DomainParser, 1)
-	}
-	c, _ := addLines2filter(lines, filter)
-
-	clog.Infof(loadLogFmt, "rules", c, path)
-	return nil
-}
-
-func RemoteRuleLoader(uri string, filter *bloom.BloomFilter) error {
-	lines, err := UrlToLines(uri)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-
-	// handle by parsers
-	lines = parsers.FuzzyParser(lines, domainMinLength)
-	c, _ := addLines2filter(lines, filter)
-	clog.Infof(loadLogFmt, "rules", c, uri)
-	return nil
-}
-
-func RemoteCacheLoader(uri string, filter *bloom.BloomFilter) error {
-	resp, err := http.Get(uri)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	_, err = filter.ReadFrom(resp.Body)
-	if err != nil {
-		return err
-	}
-	clog.Infof(loadLogFmt, "cache", filter.ApproximatedSize(), uri)
-
-	return nil
-}
-
-func LocalCacheLoader(path string, filter *bloom.BloomFilter) error {
-	rf, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer rf.Close()
-
-	_, err = filter.ReadFrom(rf)
-	if err != nil {
-		return err
-	}
-
-	clog.Infof(loadLogFmt, "cache", filter.ApproximatedSize(), path)
-	return nil
 }
 
 func FileToLines(path string) ([]string, error) {
@@ -343,4 +270,75 @@ func LinesFromReader(r io.Reader) ([]string, error) {
 	}
 
 	return lines, nil
+}
+
+func LocalRuleLoader(path string, filter *bloom.Filter, strictMode bool) error {
+	rf, err := os.Open(path)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	defer rf.Close()
+
+	reader := bufio.NewReader(rf)
+	contents, _ := ioutil.ReadAll(reader)
+	lines := strings.Split(string(contents), string('\n'))
+
+	if strictMode {
+		lines = parsers.FuzzyParser(lines, 1)
+	} else {
+		lines = parsers.LooseParser(lines, parsers.DomainParser, 1)
+	}
+	c, _ := addLines2filter(lines, filter)
+
+	clog.Infof(loadLogFmt, "rules", c, path)
+	return nil
+}
+
+func LocalCacheLoader(path string) (*bloom.Filter, error) {
+	rf, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer rf.Close()
+
+	data, err := ioutil.ReadAll(rf)
+	filter, err := bloom.Decode(data)
+	if err != nil {
+		return nil, err
+	}
+
+	clog.Infof(loadLogFmt, "cache", filter.Count(), path)
+	return filter, nil
+}
+
+func RemoteRuleLoader(uri string, filter *bloom.Filter) error {
+	lines, err := UrlToLines(uri)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	// handle by parsers
+	lines = parsers.FuzzyParser(lines, domainMinLength)
+	c, _ := addLines2filter(lines, filter)
+	clog.Infof(loadLogFmt, "rules", c, uri)
+	return nil
+}
+
+func RemoteCacheLoader(uri string) (*bloom.Filter, error) {
+	resp, err := http.Get(uri)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	data, err := ioutil.ReadAll(resp.Body)
+	filter, err := bloom.Decode(data)
+	if err != nil {
+		return nil, err
+	}
+	clog.Infof(loadLogFmt, "cache", filter.Count(), uri)
+
+	return filter, nil
 }

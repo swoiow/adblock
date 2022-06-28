@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
 	"github.com/miekg/dns"
+	bloom "github.com/seiflotfy/cuckoofilter"
 )
 
 func TestGetWild(t *testing.T) {
@@ -48,7 +48,7 @@ func TestBlackListOnly(t *testing.T) {
 	// arrange
 	host := "example.com"
 	runCfg := NewConfigs()
-	runCfg.filter = bloom.NewWithEstimates(uint(runCfg.Size), runCfg.Rate)
+	runCfg.filter = bloom.NewFilter(uint(runCfg.Size))
 	addLines2filter([]string{host}, runCfg.filter)
 
 	tests := []struct {
@@ -75,10 +75,10 @@ func TestBlackListWithWhiteList(t *testing.T) {
 	host := "example.com"
 	runCfg := NewConfigs()
 
-	runCfg.filter = bloom.NewWithEstimates(uint(runCfg.Size), runCfg.Rate)
+	runCfg.filter = bloom.NewFilter(uint(runCfg.Size))
 	addLines2filter([]string{host, "example." + host}, runCfg.filter)
 
-	runCfg.wFilter = bloom.NewWithEstimates(uint(runCfg.Size), runCfg.Rate)
+	runCfg.wFilter = bloom.NewFilter(uint(runCfg.Size))
 	addLines2filter([]string{host}, runCfg.wFilter)
 
 	tests := []struct {
@@ -105,7 +105,7 @@ func TestBlocked_ServeDNS_A_NEXT_PLUGIN(t *testing.T) {
 	req.SetQuestion("example.com.", dns.TypeA)
 
 	rtc := NewConfigs()
-	rtc.filter = bloom.NewWithEstimates(100, 0.01)
+	rtc.filter = bloom.NewFilter(100)
 	c := &Blocked{Configs: rtc}
 
 	rec := dnstest.NewRecorder(&test.ResponseWriter{})
@@ -122,8 +122,8 @@ func TestBlocked_ServeDNS_A_blocked_with_SOA(t *testing.T) {
 
 	rtc := NewConfigs()
 	rtc.respFunc = CreateSOA
-	rtc.filter = bloom.NewWithEstimates(100, 0.01)
-	rtc.filter.AddString("example.com")
+	rtc.filter = bloom.NewFilter(100)
+	rtc.filter.InsertUnique([]byte("example.com"))
 	c := &Blocked{Configs: rtc}
 
 	rec := dnstest.NewRecorder(&test.ResponseWriter{})
@@ -145,8 +145,8 @@ func TestBlocked_ServeDNS_A_wildcard_blocked_with_SOA(t *testing.T) {
 	rtc := NewConfigs()
 	rtc.respFunc = CreateSOA
 	rtc.wildcardMode = true
-	rtc.filter = bloom.NewWithEstimates(100, 0.01)
-	rtc.filter.AddString("*.example.com")
+	rtc.filter = bloom.NewFilter(100)
+	rtc.filter.InsertUnique([]byte("*.example.com"))
 	c := &Blocked{Configs: rtc}
 
 	rec := dnstest.NewRecorder(&test.ResponseWriter{})
@@ -166,7 +166,7 @@ func TestBlocked_ServeDNS_AAAA_SOA(t *testing.T) {
 	req.SetQuestion("example.com.", dns.TypeAAAA)
 
 	rtc := NewConfigs()
-	rtc.filter = bloom.NewWithEstimates(100, 0.01)
+	rtc.filter = bloom.NewFilter(100)
 	rtc.blockQtype[dns.TypeAAAA] = CreateSOA
 	c := &Blocked{Configs: rtc}
 
@@ -187,7 +187,7 @@ func TestBlocked_ServeDNS_ANY_NameError_in_default(t *testing.T) {
 	req.SetQuestion("example.com.", dns.TypeANY)
 
 	rtc := NewConfigs()
-	rtc.filter = bloom.NewWithEstimates(100, 0.01)
+	rtc.filter = bloom.NewFilter(100)
 	c := &Blocked{Configs: rtc}
 
 	rec := dnstest.NewRecorder(&test.ResponseWriter{})
@@ -207,7 +207,7 @@ func TestBlocked_ServeDNS_ANY_REFUSED(t *testing.T) {
 	req.SetQuestion("example.com.", dns.TypeANY)
 
 	rtc := NewConfigs()
-	rtc.filter = bloom.NewWithEstimates(100, 0.01)
+	rtc.filter = bloom.NewFilter(100)
 	rtc.blockQtype[dns.TypeANY] = CreateREFUSED
 	c := &Blocked{Configs: rtc}
 
@@ -228,7 +228,7 @@ func TestBlocked_ServeDNS_Hostname_query_REFUSED(t *testing.T) {
 	req.SetQuestion("example.", dns.TypeA)
 
 	rtc := NewConfigs()
-	rtc.filter = bloom.NewWithEstimates(100, 0.01)
+	rtc.filter = bloom.NewFilter(100)
 	rtc.hostnameQ = REFUSED
 	c := &Blocked{Configs: rtc}
 
@@ -249,7 +249,7 @@ func TestBlocked_ServeDNS_Hostname_query_IGNORE(t *testing.T) {
 	req.SetQuestion("example.", dns.TypeA)
 
 	rtc := NewConfigs()
-	rtc.filter = bloom.NewWithEstimates(100, 0.01)
+	rtc.filter = bloom.NewFilter(100)
 	rtc.hostnameQ = IGNORE
 	c := &Blocked{Configs: rtc}
 

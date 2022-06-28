@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bits-and-blooms/bloom/v3"
+	bloom "github.com/seiflotfy/cuckoofilter"
 	"github.com/swoiow/blocked/parsers"
 )
 
@@ -24,7 +24,7 @@ func TestCreateCache(t *testing.T) {
 		rulesetPath,
 	}
 
-	filter := bloom.NewWithEstimates(uint(defaultConfigs.Size), defaultConfigs.Rate)
+	filter := bloom.NewFilter(uint(defaultConfigs.Size))
 
 	for _, rule := range *rules {
 		_ = LocalRuleLoader(rule, filter, false)
@@ -37,14 +37,12 @@ func TestCreateCache(t *testing.T) {
 	}
 	defer wFile.Close()
 
-	num, err := filter.WriteTo(wFile)
-	fmt.Printf("Saved %v about %v rules from filter.", num, filter.K())
+	wFile.Write(filter.Encode())
+	fmt.Printf("Saved %v about %v rules from filter.", "", filter.Count())
 }
 
 func TestCacheByLocal(t *testing.T) {
-	filter := bloom.NewWithEstimates(uint(defaultConfigs.Size), defaultConfigs.Rate)
-
-	err := LocalCacheLoader(rulesetData, filter)
+	filter, err := LocalCacheLoader(rulesetData)
 	if err != nil {
 		panic(err)
 	}
@@ -63,7 +61,7 @@ func TestCacheByLocal(t *testing.T) {
 
 	for _, tt := range items {
 		t.Run(tt.name, func(t *testing.T) {
-			if resp := filter.TestString(tt.name); resp != tt.result {
+			if resp := filter.Lookup([]byte(tt.name)); resp != tt.result {
 				t.Errorf("TestCache failed %v", tt.name)
 			}
 		})
@@ -71,9 +69,7 @@ func TestCacheByLocal(t *testing.T) {
 }
 
 func TestCacheByFile(t *testing.T) {
-	filter := bloom.NewWithEstimates(uint(defaultConfigs.Size), defaultConfigs.Rate)
-
-	err := LocalCacheLoader(rulesetData, filter)
+	filter, err := LocalCacheLoader(rulesetData)
 	if err != nil {
 		panic(err)
 	}
@@ -92,7 +88,7 @@ func TestCacheByFile(t *testing.T) {
 
 	for _, tt := range items {
 		t.Run(tt.name, func(t *testing.T) {
-			if resp := filter.TestString(tt.name); resp != tt.result {
+			if resp := filter.Lookup([]byte(tt.name)); resp != tt.result {
 				t.Errorf("TestCache failed %v", tt.name)
 			}
 		})

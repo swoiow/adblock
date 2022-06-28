@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
-	bloom "github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metrics"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/miekg/dns"
+	bloom "github.com/seiflotfy/cuckoofilter"
 )
 
 var log = clog.NewWithPlugin(pluginName)
@@ -69,9 +69,9 @@ func (app Blocked) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 
 func (app Blocked) reloadConfig() {
 	log.Infof("[reload]: %s", time.Now())
-	bFilter := bloom.NewWithEstimates(uint(app.Configs.Size), app.Configs.Rate)
+	bFilter := bloom.NewFilter(uint(app.Configs.Size))
 	if app.Configs.cacheDataPath != "" {
-		handleCacheData(app.Configs.cacheDataPath, bFilter)
+		bFilter = handleCacheData(app.Configs.cacheDataPath)
 	}
 
 	if len(app.Configs.blackRules) > 0 {
@@ -81,7 +81,7 @@ func (app Blocked) reloadConfig() {
 	}
 
 	if len(app.Configs.whiteRules) > 0 {
-		wFilter := bloom.NewWithEstimates(100_000, 0.001)
+		wFilter := bloom.NewFilter(100_000)
 		for _, rule := range app.Configs.whiteRules {
 			handleWhiteRules(rule, wFilter)
 		}
@@ -118,7 +118,7 @@ func GetWild(h string) []string {
 }
 
 func IsBlocked(cfg *Configs, host string) bool {
-	return !(cfg.wFilter != nil && cfg.wFilter.TestString(host)) && cfg.filter.TestString(host)
+	return !(cfg.wFilter != nil && cfg.wFilter.Lookup([]byte(host))) && cfg.filter.Lookup([]byte(host))
 }
 
 func IsHostname(s string) bool {
