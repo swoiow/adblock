@@ -1,5 +1,6 @@
 CURRENT_DATE?=$(shell date +%Y.%m.%d)
 GITHUB_SHA?=main
+GITHUB_SHA_TURNED?=e23edf6ff7849a15fd2a168e9c9d5add7c8c6dc1
 DIST_PATH?=.
 
 SHORT_SHA=$(shell git rev-parse --short $(GITHUB_SHA))
@@ -17,7 +18,7 @@ clean:
 
 generate:
 	go get github.com/swoiow/blocked@$(GITHUB_SHA) && \
-	go get github.com/swoiow/turned@v0.0.5 && \
+	go get github.com/swoiow/turned@$(GITHUB_SHA_TURNED) && \
 	go generate
 
 build-rules:
@@ -42,9 +43,7 @@ build-bin:
 build-local-osx: clean build-image
 	docker run -it --rm -v `pwd`/.build_space:/build_space runtime cp -arf /app/ /build_space
 	cd .build_space/app && \
-		go get github.com/swoiow/blocked@$(GITHUB_SHA) && \
-		go get github.com/swoiow/turned@main && \
-		go generate && \
+		make generate && \
 		GO111MODULE=auto \
 		CGO_ENABLED=0 \
 		GOOS=darwin \
