@@ -1,5 +1,6 @@
 *.tdnsv6.com
 *.alidns.com
+*.alibabadns.com
 alidns.com
 dns.google
 dns.weixin.qq.com

@@ -1,3 +1,7 @@
+statistics.gd.gov.cn
+*.cnklog.com
+cpatrk.net
+*.cpatrk.net
 *.127.net
 *.account.jetbrains.com
 *.alidns.com
