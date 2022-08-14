@@ -1,0 +1,50 @@
+天翼云
+sns-img-hw.xhscdn.com.ctdns.cn
+
+Akamai Technologies
+akadns.net
+
+阿里云
+alibabadns.com
+
+网宿
+lxdns.com
+wscdns.com
+cdn20.com
+cdn30.com
+ourplat.net
+wsdvs.com
+wsglb0.com
+wswebcdn.com
+wswebpic.com
+wsssec.com
+wscloudcdn.com
+mwcloudcdn.com
+
+华为云
+c.cdnhwc1.com
+
+七牛云
+qiniudns.com
+
+https://blog.gfkui.com/2018/08/04/%E5%90%84%E5%A4%A7cdn%E5%8E%82%E5%95%86%E7%9A%84CNAME/index.html
+白山云科技	qingcdn.com
+bsclink.cn
+trpcdn.net
+网宿	wsdvs.com
+wsglb0.com
+wscdns.com
+蓝汛	ccgslb.com.cn
+帝联	fastcdn.com
+阿里云	kunlun*.com
+腾讯云	dnsv1.com
+百度云	bdydns.com
+七牛云	qiniudns.com
+又拍云	aicdn.com
+云端智度	spdydns.com
+网易云	163jiasu.com
+360云	360cdn.cn
+qihucdn.com
+亚马逊云	cloudfront.net
+Microsoft Azure	mschcdn.com
+verycdn	verycdn.net
