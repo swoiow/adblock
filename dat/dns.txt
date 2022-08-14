@@ -1,8 +1,12 @@
 *.tdnsv6.com
 *.alidns.com
 *.alibabadns.com
+*.ctdns.cn
+*.c.cdnhwc1.com
+*.qiniudns.com
 alidns.com
 dns.google
-dns.weixin.qq.com
 doh.pub
 dns.qq.com
+dns.weixin.qq.com
+aedns.weixin.qq.com
