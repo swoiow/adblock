@@ -1,14 +1,14 @@
 module github.com/swoiow/blocked
 
-go 1.18
+go 1.19
 
 require (
-	github.com/bits-and-blooms/bloom/v3 v3.2.0
+	github.com/bits-and-blooms/bloom/v3 v3.3.1
 	github.com/coredns/caddy v1.1.1
-	github.com/coredns/coredns v1.9.3
-	github.com/google/go-cmp v0.5.8
-	github.com/miekg/dns v1.1.49
-	github.com/prometheus/client_golang v1.12.2
+	github.com/coredns/coredns v1.10.0
+	github.com/google/go-cmp v0.5.9
+	github.com/miekg/dns v1.1.50
+	github.com/prometheus/client_golang v1.13.0
 )
 
 require (

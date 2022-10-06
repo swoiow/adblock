@@ -17,7 +17,7 @@ clean:
 
 generate:
 	go get github.com/swoiow/blocked@$(GITHUB_SHA) && \
-	go get github.com/swoiow/turned@v0.0.4 && \
+	go get github.com/swoiow/turned@594482fa6c7b08a5defff420e5561d9ea61a611a && \
 	go generate
 
 build-rules:
