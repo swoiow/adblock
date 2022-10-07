@@ -17,9 +17,11 @@ version:
 	echo $(PREFIX)$(SUFFIX)
 
 clean:
+	go clean -modcache
 	rm -rf .github/*.txt .github/rules/*.* .github/raw/*.* .build_space dist
 
 generate:
+	go clean -modcache
 	go get github.com/swoiow/blocked@$(PLUGIN_BLOCKED_VER) && \
 	go get github.com/swoiow/turned@$(PLUGIN_TURNED_VER) && \
 	go generate
