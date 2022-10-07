@@ -2,9 +2,7 @@ package blocked
 
 import (
 	"bufio"
-	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -15,6 +13,7 @@ import (
 	"github.com/coredns/coredns/plugin"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/miekg/dns"
+	"github.com/swoiow/dns_utils/loader"
 	"github.com/swoiow/dns_utils/parsers"
 )
 
@@ -63,7 +62,7 @@ func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 				return runtimeConfig, plugin.Error(pluginName, c.Errf("pares size error: %s", err))
 			}
 			configs.interval = interval
-			log.Info("[Settings] reload is enabled")
+			log.Info("[doing] reload is enabled")
 			break
 
 		case "size_rate":
@@ -91,7 +90,7 @@ func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 
 		case "log":
 			configs.log = true
-			log.Info("[Settings] log is enabled")
+			log.Info("[doing] log is enabled")
 			break
 
 		case "hostname_query":
@@ -106,7 +105,7 @@ func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 			case IGNORE:
 				configs.hostnameQ = IGNORE
 			}
-			log.Infof("[Settings] hostname_query: %s", inputString)
+			log.Infof("[doing] hostname_query: %s", inputString)
 			break
 
 		case "resp_type":
@@ -116,7 +115,7 @@ func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 			}
 			fn := RespType2RespFunc(string2RespType(inputString))
 			if fn != nil {
-				log.Infof("[Settings] resp_type: %s", inputString)
+				log.Infof("[doing] resp_type: %s", inputString)
 				configs.respFunc = fn
 			}
 
@@ -137,14 +136,14 @@ func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 					}
 				}
 				if len(blockQtype) > 0 {
-					log.Infof("[Settings] block_qtype: %s -> %s", blockQtype, inputString)
+					log.Infof("[doing] block_qtype: %s -> %s", blockQtype, inputString)
 				}
 			}
 			break
 
 		case "wildcard":
 			configs.wildcardMode = true
-			log.Info("[Settings] wildcard mode is enabled")
+			log.Info("[doing] wildcard mode is enabled")
 			break
 
 		case "cache_data":
@@ -186,11 +185,11 @@ func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 }
 
 func handleCacheData(inputString string, filter *bloom.BloomFilter) {
-	if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
-		strings.HasPrefix(strings.ToLower(inputString), "https://") {
-		_ = RemoteCacheLoader(inputString, filter)
-	} else {
-		_ = LocalCacheLoader(inputString, filter)
+	m := loader.DetectMethods(inputString)
+	err := m.LoadCache(filter)
+	if err != nil {
+		log.Warningf("handleCacheData with err: %s", err)
+		return
 	}
 }
 
@@ -212,19 +211,21 @@ func handleBlackRules(inputString string, filter *bloom.BloomFilter) {
 
 func handleWhiteRules(inputString string, wFilter *bloom.BloomFilter) {
 	minLen := domainMinLength
-	var lines []string
-	if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
-		strings.HasPrefix(strings.ToLower(inputString), "https://") {
-		lines, _ = UrlToLines(inputString)
-	} else {
-		lines, _ = FileToLines(inputString)
+	m := loader.DetectMethods(inputString)
+	if m.IsRules {
 		minLen = 1
+	}
+
+	lines, err := m.LoadRules(false)
+	if err != nil {
+		log.Warningf("handleWhiteRules with err: %s", err)
+		return
 	}
 
 	if len(lines) > 0 {
 		if wFilter == nil {
 			wFilter = bloom.NewWithEstimates(100_000, 0.001)
-			log.Info("[Settings] whiteList mode is enabled")
+			log.Info("[doing] whiteList mode is enabled")
 		}
 
 		addLines2filter(parsers.LooseParser(lines, parsers.DomainParser, minLen), wFilter)
@@ -246,6 +247,8 @@ func addLines2filter(lines []string, filter *bloom.BloomFilter) (int, *bloom.Blo
 }
 
 func LocalRuleLoader(path string, filter *bloom.BloomFilter, strictMode bool) error {
+	// Will deprecated, Use dns_utils.
+
 	rf, err := os.Open(path)
 	if err != nil {
 		log.Error(err)
@@ -269,7 +272,9 @@ func LocalRuleLoader(path string, filter *bloom.BloomFilter, strictMode bool) er
 }
 
 func RemoteRuleLoader(uri string, filter *bloom.BloomFilter) error {
-	lines, err := UrlToLines(uri)
+	// Will deprecated, Use dns_utils.
+
+	lines, err := loader.UrlToLines(uri)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -280,67 +285,4 @@ func RemoteRuleLoader(uri string, filter *bloom.BloomFilter) error {
 	c, _ := addLines2filter(lines, filter)
 	clog.Infof(loadLogFmt, "rules", c, uri)
 	return nil
-}
-
-func RemoteCacheLoader(uri string, filter *bloom.BloomFilter) error {
-	resp, err := http.Get(uri)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	_, err = filter.ReadFrom(resp.Body)
-	if err != nil {
-		return err
-	}
-	clog.Infof(loadLogFmt, "cache", filter.ApproximatedSize(), uri)
-
-	return nil
-}
-
-func LocalCacheLoader(path string, filter *bloom.BloomFilter) error {
-	rf, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer rf.Close()
-
-	_, err = filter.ReadFrom(rf)
-	if err != nil {
-		return err
-	}
-
-	clog.Infof(loadLogFmt, "cache", filter.ApproximatedSize(), path)
-	return nil
-}
-
-func FileToLines(path string) ([]string, error) {
-	rf, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer rf.Close()
-	return LinesFromReader(rf)
-}
-
-func UrlToLines(url string) ([]string, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	return LinesFromReader(resp.Body)
-}
-
-func LinesFromReader(r io.Reader) ([]string, error) {
-	var lines []string
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-
-	return lines, nil
 }

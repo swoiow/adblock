@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bits-and-blooms/bloom/v3"
+	"github.com/swoiow/dns_utils/loader"
 	"github.com/swoiow/dns_utils/parsers"
 )
 
@@ -44,7 +44,8 @@ func TestCreateCache(t *testing.T) {
 func TestCacheByLocal(t *testing.T) {
 	filter := bloom.NewWithEstimates(uint(defaultConfigs.Size), defaultConfigs.Rate)
 
-	err := LocalCacheLoader(rulesetData, filter)
+	m := loader.DetectMethods(rulesetData)
+	err := m.LoadCache(filter)
 	if err != nil {
 		panic(err)
 	}
@@ -73,7 +74,8 @@ func TestCacheByLocal(t *testing.T) {
 func TestCacheByFile(t *testing.T) {
 	filter := bloom.NewWithEstimates(uint(defaultConfigs.Size), defaultConfigs.Rate)
 
-	err := LocalCacheLoader(rulesetData, filter)
+	m := loader.DetectMethods(rulesetData)
+	err := m.LoadCache(filter)
 	if err != nil {
 		panic(err)
 	}
@@ -82,8 +84,11 @@ func TestCacheByFile(t *testing.T) {
 		name   string
 		result bool
 	}
+
 	var items = []rule{}
-	lines, _ := FileToLines(rulesetPath)
+	m2 := loader.DetectMethods(rulesetPath)
+
+	lines, _ := m2.LoadRules(false)
 
 	for _, line := range lines {
 		result, domains := parsers.Parse(line, parsers.DomainParser)
