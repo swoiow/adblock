@@ -61,7 +61,6 @@ jobs:
       - name: Get dependence
         run: |
           go get
-          go get -t github.com/swoiow/blocked/parsers
           make build-rules > etl-result.txt
           cat etl-result.txt
           make build-inside-rules

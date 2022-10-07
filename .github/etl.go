@@ -10,6 +10,7 @@ import (
 
 	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/swoiow/blocked"
+	"github.com/swoiow/dns_utils/loader"
 	"github.com/swoiow/dns_utils/parsers"
 )
 
@@ -69,9 +70,15 @@ func fetchUrls() []string {
 }
 
 func createRuleset(ruleUrls []string) {
+	dropSet := make(map[string]bool)
+	dropRules, _ := loader.UrlToLines("https://github.com/swoiow/blocked/raw/conf/dat/drop-domains.txt")
+	for _, dropRule := range dropRules {
+		dropSet[dropRule] = true
+	}
+
 	ruleSet := make(map[string]bool)
 	for _, ruleUrl := range ruleUrls {
-		lines, err := blocked.UrlToLines(ruleUrl)
+		lines, err := loader.UrlToLines(ruleUrl)
 		if err != nil {
 			panic(err)
 		}
@@ -79,8 +86,24 @@ func createRuleset(ruleUrls []string) {
 		// handle by parsers
 		last := len(ruleSet)
 		lines = parsers.FuzzyParser(lines, 3)
+
+		ph := strings.Replace(ruleUrl, "https://", "", -1)
+		ph = strings.Replace(ph, ".", "_", -1)
+		ph = strings.Replace(ph, "/", "_", -1)
+		wFile, err := os.Create(".github/rules/" + ph)
+		if err != nil {
+			panic(err)
+			os.Exit(1)
+		}
+		defer wFile.Close()
+		wFile.WriteString(strings.Join(lines, "\n"))
+
 		for _, line := range lines {
 			domain := strings.ToLower(strings.TrimSpace(line))
+
+			if dropSet[domain] {
+				continue
+			}
 
 			if _, ok := ruleSet[domain]; !ok {
 				ruleSet[domain] = true
@@ -90,7 +113,7 @@ func createRuleset(ruleUrls []string) {
 		fmt.Printf("Loaded %s (num:%v) from `%s`.\n", "rules", len(ruleSet)-last, ruleUrl)
 	}
 
-	Size = uint(1.05 * float64(len(ruleSet)))
+	Size = uint(1.1 * float64(len(ruleSet)))
 	filter := bloom.NewWithEstimates(Size, Rate)
 	for r := range ruleSet {
 		filter.AddString(r)

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/bits-and-blooms/bloom/v3"
-	"github.com/swoiow/blocked"
+	"github.com/swoiow/dns_utils/loader"
 	"github.com/swoiow/dns_utils/parsers"
 )
 
@@ -61,7 +61,7 @@ func createRules(ruleUrls []string) []string {
 	ruleSet["*.cn"] = true
 
 	for _, ruleUrl := range ruleUrls {
-		lines, err := blocked.UrlToLines(ruleUrl)
+		lines, err := loader.UrlToLines(ruleUrl)
 		if err != nil {
 			panic(err)
 		}
@@ -134,9 +134,13 @@ func testDAT() {
 	counter := 0
 	bottle := bloom.NewWithEstimates(uint(Size), Cap)
 
-	blocked.LocalCacheLoader(rulesetData, bottle)
+	m := loader.DetectMethods(rulesetData)
+	err := m.LoadCache(bottle)
+	if err != nil {
+		panic(err)
+	}
 
-	lines, _ := blocked.FileToLines(rulesetPath)
+	lines, _ := loader.FileToLines(rulesetPath)
 
 	for _, line := range lines {
 		if bottle.TestString(line) {

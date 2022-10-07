@@ -42,7 +42,6 @@ jobs:
 
       - name: Test
         run: |
-          go get -t github.com/swoiow/blocked/parsers
           go test ./...
 
       - name: Public rules.dat
