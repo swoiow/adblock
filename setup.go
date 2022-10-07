@@ -57,5 +57,6 @@ func setup(c *caddy.Controller) error {
 		return &app
 	})
 
+	fmt.Printf("\n")
 	return nil
 }
