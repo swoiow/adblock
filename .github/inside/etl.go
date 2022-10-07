@@ -7,7 +7,7 @@ import (
 
 	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/swoiow/blocked"
-	"github.com/swoiow/blocked/parsers"
+	"github.com/swoiow/dns_utils/parsers"
 )
 
 const (

@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
-	bloom "github.com/bits-and-blooms/bloom/v3"
+	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/caddy"
 	"github.com/coredns/coredns/plugin"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/miekg/dns"
-	"github.com/swoiow/blocked/parsers"
+	"github.com/swoiow/dns_utils/parsers"
 )
 
 func NewConfigs() *Configs {

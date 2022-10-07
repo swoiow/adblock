@@ -6,15 +6,15 @@ require (
 	github.com/bits-and-blooms/bloom/v3 v3.3.1
 	github.com/coredns/caddy v1.1.1
 	github.com/coredns/coredns v1.10.0
-	github.com/google/go-cmp v0.5.9
 	github.com/miekg/dns v1.1.50
 	github.com/prometheus/client_golang v1.13.0
+	github.com/swoiow/dns_utils v0.0.0-20221006184217-0477d70cc84f
 )
 
 require (
 	github.com/apparentlymart/go-cidr v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bits-and-blooms/bitset v1.3.1 // indirect
+	github.com/bits-and-blooms/bitset v1.3.3 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
