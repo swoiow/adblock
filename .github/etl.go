@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -70,6 +71,11 @@ func fetchUrls() []string {
 }
 
 func createRuleset(ruleUrls []string) {
+	tmpDataPath := ".github/rules"
+	if _, err := os.Stat(tmpDataPath); errors.Is(err, os.ErrNotExist) {
+		os.MkdirAll(tmpDataPath, 600)
+	}
+
 	// load drop-domains so that can drop the useless rules.
 	dropSet := make(map[string]bool)
 	dropRules, _ := loader.UrlToLines("https://github.com/swoiow/blocked/raw/conf/dat/drop-domains.txt")
@@ -92,7 +98,7 @@ func createRuleset(ruleUrls []string) {
 		ph := strings.Replace(ruleUrl, "https://", "", -1)
 		ph = strings.Replace(ph, ".", "_", -1)
 		ph = strings.Replace(ph, "/", "_", -1)
-		wFile, err := os.Create(".github/rules/" + ph)
+		wFile, err := os.Create(tmpDataPath + "/" + ph)
 		if err != nil {
 			panic(err)
 			os.Exit(1)
