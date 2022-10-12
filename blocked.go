@@ -20,10 +20,7 @@ func (app Blocked) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 	if fn, ok := app.Configs.blockQtype[question.Qtype]; ok {
 		w.WriteMsg(fn(question, r))
 		return dns.RcodeSuccess, nil
-	} else if !(question.Qtype == dns.TypeA ||
-		question.Qtype == dns.TypeAAAA ||
-		question.Qtype == dns.TypeHTTPS ||
-		question.Qtype == dns.TypeCNAME) {
+	} else if !(app.Configs.interceptQtype[question.Qtype]) {
 		return plugin.NextOrFailure(pluginName, app.Next, ctx, w, r)
 	}
 

@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	bloom "github.com/bits-and-blooms/bloom/v3"
+	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/coredns/plugin"
 	"github.com/miekg/dns"
 )
@@ -93,6 +93,9 @@ type Configs struct {
 
 	Size int
 	Rate float64
+
+	// 需要检测是否屏蔽的DNS查询类型（dns query type）
+	interceptQtype map[uint16]bool
 
 	log          bool
 	wildcardMode bool

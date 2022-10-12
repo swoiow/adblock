@@ -48,6 +48,16 @@ func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 		args := c.RemainingArgs()
 
 		switch value {
+		case "intercept", "check":
+			qTypeArgs := c.RemainingArgs()
+
+			for ix := 0; ix < len(qTypeArgs); ix++ {
+				qTypeStr := strings.ToUpper(qTypeArgs[ix])
+				qType := dns.StringToType[qTypeStr]
+				configs.interceptQtype[qType] = true
+			}
+			break
+
 		case "interval", "reload":
 			if len(args) != 1 {
 				return runtimeConfig, c.Errf("reload needs a duration (zero seconds to disable)")
