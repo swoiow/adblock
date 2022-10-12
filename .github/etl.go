@@ -73,7 +73,7 @@ func fetchUrls() []string {
 func createRuleset(ruleUrls []string) {
 	tmpDataPath := ".github/rules"
 	if _, err := os.Stat(tmpDataPath); errors.Is(err, os.ErrNotExist) {
-		os.MkdirAll(tmpDataPath, 600)
+		os.MkdirAll(tmpDataPath, 777)
 	}
 
 	// load drop-domains so that can drop the useless rules.
