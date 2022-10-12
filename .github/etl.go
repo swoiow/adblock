@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -48,7 +48,7 @@ func fetchUrls() []string {
 	}
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		panic(err)
 	}
@@ -60,22 +60,24 @@ func fetchUrls() []string {
 	}
 
 	urls := strings.Split(jsonb.Body, "\r\n")
-	var bucket []string
+	var urlRules []string
 	for _, i := range urls {
 		if len(strings.TrimSpace(i)) > 0 {
-			bucket = append(bucket, i)
+			urlRules = append(urlRules, i)
 		}
 	}
-	return bucket
+	return urlRules
 }
 
 func createRuleset(ruleUrls []string) {
+	// load drop-domains so that can drop the useless rules.
 	dropSet := make(map[string]bool)
 	dropRules, _ := loader.UrlToLines("https://github.com/swoiow/blocked/raw/conf/dat/drop-domains.txt")
 	for _, dropRule := range dropRules {
 		dropSet[dropRule] = true
 	}
 
+	// begin logic
 	ruleSet := make(map[string]bool)
 	for _, ruleUrl := range ruleUrls {
 		lines, err := loader.UrlToLines(ruleUrl)
