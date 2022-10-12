@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/swoiow/dns_utils/loader"
 	"github.com/swoiow/dns_utils/parsers"
 )
@@ -27,13 +28,17 @@ func TestCreateCache(t *testing.T) {
 	filter := bloom.NewWithEstimates(uint(defaultConfigs.Size), defaultConfigs.Rate)
 
 	for _, rule := range *rules {
-		_ = LocalRuleLoader(rule, filter, false)
+		m := loader.DetectMethods(rule)
+		lines, err := m.LoadRules(m.StrictMode)
+		if err != nil {
+			panic(err)
+		}
+		addLines2filter(lines, filter)
 	}
 
 	wFile, err := os.Create(rulesetData)
 	if err != nil {
-		log.Error(err)
-		os.Exit(1)
+		panic(err)
 	}
 	defer wFile.Close()
 

@@ -1,9 +1,6 @@
 package blocked
 
 import (
-	"bufio"
-	"io/ioutil"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -11,7 +8,6 @@ import (
 	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/caddy"
 	"github.com/coredns/coredns/plugin"
-	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/miekg/dns"
 	"github.com/swoiow/dns_utils/loader"
 	"github.com/swoiow/dns_utils/parsers"
@@ -194,19 +190,16 @@ func handleCacheData(inputString string, filter *bloom.BloomFilter) {
 }
 
 func handleBlackRules(inputString string, filter *bloom.BloomFilter) {
-	strictMode := true
-	if strings.HasPrefix(strings.ToLower(inputString), "local+") {
-		strictMode = false
-		inputString = strings.TrimPrefix(inputString, "local+")
+	m := loader.DetectMethods(inputString)
+	m.StrictMode = !strings.HasPrefix(strings.ToLower(inputString), "local+")
+
+	lines, err := m.LoadRules(m.StrictMode)
+	if err != nil {
+		log.Warningf("handleBlackRules with err: %s", err)
+		return
 	}
 
-	if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
-		strings.HasPrefix(strings.ToLower(inputString), "https://") {
-		_ = RemoteRuleLoader(inputString, filter)
-
-	} else {
-		_ = LocalRuleLoader(inputString, filter, strictMode)
-	}
+	addLines2filter(lines, filter)
 }
 
 func handleWhiteRules(inputString string, wFilter *bloom.BloomFilter) {
@@ -216,20 +209,18 @@ func handleWhiteRules(inputString string, wFilter *bloom.BloomFilter) {
 		minLen = 1
 	}
 
-	lines, err := m.LoadRules(false)
+	lines, err := m.LoadRules(m.StrictMode)
 	if err != nil {
 		log.Warningf("handleWhiteRules with err: %s", err)
 		return
 	}
 
-	if len(lines) > 0 {
-		if wFilter == nil {
-			wFilter = bloom.NewWithEstimates(100_000, 0.001)
-			log.Info("[doing] whiteList mode is enabled")
-		}
-
-		addLines2filter(parsers.LooseParser(lines, parsers.DomainParser, minLen), wFilter)
+	if wFilter == nil {
+		wFilter = bloom.NewWithEstimates(100_000, 0.001)
+		log.Info("[doing] whiteList mode is enabled")
 	}
+
+	addLines2filter(parsers.LooseParser(lines, parsers.DomainParser, minLen), wFilter)
 }
 
 /*
@@ -244,45 +235,4 @@ func addLines2filter(lines []string, filter *bloom.BloomFilter) (int, *bloom.Blo
 		}
 	}
 	return c, filter
-}
-
-func LocalRuleLoader(path string, filter *bloom.BloomFilter, strictMode bool) error {
-	// Will deprecated, Use dns_utils.
-
-	rf, err := os.Open(path)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-	defer rf.Close()
-
-	reader := bufio.NewReader(rf)
-	contents, _ := ioutil.ReadAll(reader)
-	lines := strings.Split(string(contents), string('\n'))
-
-	if strictMode {
-		lines = parsers.FuzzyParser(lines, 1)
-	} else {
-		lines = parsers.LooseParser(lines, parsers.DomainParser, 1)
-	}
-	c, _ := addLines2filter(lines, filter)
-
-	clog.Infof(loadLogFmt, "rules", c, path)
-	return nil
-}
-
-func RemoteRuleLoader(uri string, filter *bloom.BloomFilter) error {
-	// Will deprecated, Use dns_utils.
-
-	lines, err := loader.UrlToLines(uri)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-
-	// handle by parsers
-	lines = parsers.FuzzyParser(lines, domainMinLength)
-	c, _ := addLines2filter(lines, filter)
-	clog.Infof(loadLogFmt, "rules", c, uri)
-	return nil
 }
