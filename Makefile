@@ -27,6 +27,7 @@ generate:
 	go generate
 
 build-rules:
+	mkdir -p .github/rules
 	go run .github/etl.go
 	echo `date +%F`
 
