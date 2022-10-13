@@ -17,7 +17,7 @@ func CreateSOA(q dns.Question, r *dns.Msg) *dns.Msg {
 
 	soa := new(dns.SOA)
 	soa.Mbox = "query.blocked."
-	soa.Ns = "a.root-servers.net."
+	soa.Ns = "dns.lan."
 	soa.Serial = 1
 	soa.Refresh = DAY
 	soa.Minttl = HOUR

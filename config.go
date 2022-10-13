@@ -18,6 +18,8 @@ func NewConfigs() *Configs {
 		Size: 250_000,
 		Rate: 0.001,
 
+		interceptQtype: make(map[uint16]bool),
+
 		log:        false,
 		hostnameQ:  REFUSED,
 		respFunc:   CreateSOA,
@@ -49,13 +51,16 @@ func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 
 		switch value {
 		case "intercept", "check":
+			var interceptQtype []string
 			qTypeArgs := c.RemainingArgs()
 
 			for ix := 0; ix < len(qTypeArgs); ix++ {
 				qTypeStr := strings.ToUpper(qTypeArgs[ix])
 				qType := dns.StringToType[qTypeStr]
 				configs.interceptQtype[qType] = true
+				interceptQtype = append(interceptQtype, qTypeStr)
 			}
+			log.Infof("[doing] intercept: %s", interceptQtype)
 			break
 
 		case "interval", "reload":
@@ -184,6 +189,14 @@ func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 		default:
 			return runtimeConfig, c.Errf("unknown property '%s'", c.Val())
 		}
+	}
+
+	if configs.interceptQtype == nil {
+		defaultQueryType := []string{"A", "AAAA", "CNAME", "HTTPS"}
+		for _, qtStr := range defaultQueryType {
+			configs.interceptQtype[dns.StringToType[qtStr]] = true
+		}
+		log.Infof("[doing] default intercept: %s", defaultQueryType)
 	}
 
 	runtimeConfig.Configs = configs
