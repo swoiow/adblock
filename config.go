@@ -52,10 +52,9 @@ func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 		switch value {
 		case "intercept", "check":
 			var interceptQtype []string
-			qTypeArgs := c.RemainingArgs()
 
-			for ix := 0; ix < len(qTypeArgs); ix++ {
-				qTypeStr := strings.ToUpper(qTypeArgs[ix])
+			for ix := 0; ix < len(args); ix++ {
+				qTypeStr := strings.ToUpper(args[ix])
 				qType := dns.StringToType[qTypeStr]
 				configs.interceptQtype[qType] = true
 				interceptQtype = append(interceptQtype, qTypeStr)
@@ -191,7 +190,7 @@ func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 		}
 	}
 
-	if configs.interceptQtype == nil {
+	if len(configs.interceptQtype) == 0 {
 		defaultQueryType := []string{"A", "AAAA", "CNAME", "HTTPS"}
 		for _, qtStr := range defaultQueryType {
 			configs.interceptQtype[dns.StringToType[qtStr]] = true
