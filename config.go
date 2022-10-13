@@ -37,6 +37,8 @@ func NewConfigs() *Configs {
 	}
 
 	c.blockQtype[dns.TypeANY] = CreateNXDOMAIN
+	c.interceptQtype[dns.TypeA] = true
+	c.interceptQtype[dns.TypeAAAA] = true
 	return c
 }
 

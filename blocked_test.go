@@ -227,3 +227,29 @@ func TestBlocked_ServeDNS_Hostname_query_IGNORE(t *testing.T) {
 		t.Errorf("assert failed")
 	}
 }
+
+func TestBlocked_ServeDNS_HTTPS_CNAME_blocked_with_SOA(t *testing.T) {
+	rtc := NewConfigs()
+	rtc.interceptQtype[dns.TypeHTTPS] = true
+	rtc.interceptQtype[dns.TypeCNAME] = true
+	rtc.respFunc = CreateSOA
+	rtc.filter = bloom.NewWithEstimates(100, 0.01)
+	rtc.filter.AddString("example.com")
+	c := &Blocked{Configs: rtc}
+
+	for _, qt := range []uint16{dns.TypeHTTPS, dns.TypeCNAME} {
+		req := new(dns.Msg)
+		req.SetQuestion("example.com.", qt)
+		rec := dnstest.NewRecorder(&test.ResponseWriter{})
+		_, err := c.ServeDNS(context.TODO(), rec, req)
+
+		if err != nil {
+			t.Errorf("Expected no error, but got %q", err)
+		}
+
+		if rec.Msg.Ns[0].Header().Rrtype != dns.TypeSOA {
+			t.Errorf("assert failed")
+		}
+	}
+
+}

@@ -56,13 +56,13 @@ func (app Blocked) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 		if app.Configs.log {
 			log.Infof(qLogFmt, "hinted", qDomain, time.Since(start))
 		}
-		hintedCount.WithLabelValues(metrics.WithServer(ctx)).Inc()
+		hintedCount.WithLabelValues(metrics.WithServer(ctx), dns.TypeToString[question.Qtype]).Inc()
 		return dns.RcodeSuccess, nil
 	} else {
 		if app.Configs.log {
 			log.Infof(qLogFmt, "not hint", qDomain, time.Since(start))
 		}
-		missesCount.WithLabelValues(metrics.WithServer(ctx)).Inc()
+		missesCount.WithLabelValues(metrics.WithServer(ctx), dns.TypeToString[question.Qtype]).Inc()
 		return plugin.NextOrFailure(pluginName, app.Next, ctx, w, r)
 	}
 }
