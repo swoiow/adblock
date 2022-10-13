@@ -200,6 +200,10 @@ func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 		log.Infof("[doing] default intercept: %s", defaultQueryType)
 	}
 
+	if configs.wFilter != nil {
+		log.Info("[doing] white_list mode is enabled")
+	}
+
 	runtimeConfig.Configs = configs
 	return runtimeConfig, nil
 }
@@ -211,6 +215,7 @@ func handleCacheData(inputString string, filter *bloom.BloomFilter) {
 		log.Warningf("handleCacheData with err: %s", err)
 		return
 	}
+	log.Infof(loadLogFmt, "cache", filter.ApproximatedSize(), m.OutInput)
 }
 
 func handleBlackRules(inputString string, filter *bloom.BloomFilter) {
@@ -223,7 +228,8 @@ func handleBlackRules(inputString string, filter *bloom.BloomFilter) {
 		return
 	}
 
-	addLines2filter(lines, filter)
+	c, _ := addLines2filter(lines, filter)
+	log.Infof(loadLogFmt, "black-rules", c, m.OutInput)
 }
 
 func handleWhiteRules(inputString string, wFilter *bloom.BloomFilter) {
@@ -244,7 +250,8 @@ func handleWhiteRules(inputString string, wFilter *bloom.BloomFilter) {
 		log.Info("[doing] whiteList mode is enabled")
 	}
 
-	addLines2filter(parsers.LooseParser(lines, parsers.DomainParser, minLen), wFilter)
+	c, _ := addLines2filter(parsers.LooseParser(lines, parsers.DomainParser, minLen), wFilter)
+	log.Infof(loadLogFmt, "white-rules", c, m.OutInput)
 }
 
 /*

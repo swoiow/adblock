@@ -35,7 +35,7 @@ const (
 	NXDOMAIN = NX
 
 	qLogFmt    = "%s: '%s' - spent: %s"
-	loadLogFmt = "Loaded %s (num:%v) from `%s`."
+	loadLogFmt = ">> loaded %s (num:%v) from `%s`."
 )
 
 const (
