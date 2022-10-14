@@ -20,6 +20,11 @@ var (
 	Cap  = 0.001
 )
 
+var chinaDomainList = []string{
+	"https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/direct-list.txt",
+	"https://raw.githubusercontent.com/swoiow/app-domains/main/app-domains.txt",
+}
+
 func generateDAT(rules []string) {
 	filter := bloom.NewWithEstimates(uint(Size), Cap)
 
@@ -158,10 +163,7 @@ func main() {
 
 	switch selected {
 	case 1:
-		data := createRules([]string{
-			"https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/direct-list.txt",
-			"https://raw.githubusercontent.com/swoiow/app-domains/main/app-domains.txt",
-		})
+		data := createRules(chinaDomainList)
 		generateDAT(data)
 
 	default:
