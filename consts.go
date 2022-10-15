@@ -94,6 +94,8 @@ type Configs struct {
 	Size int
 	Rate float64
 
+	bootstrapResolvers []string
+
 	// 需要检测是否屏蔽的DNS查询类型（dns query type）
 	interceptQtype map[uint16]bool
 

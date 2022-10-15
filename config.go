@@ -52,6 +52,11 @@ func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 		args := c.RemainingArgs()
 
 		switch value {
+		case "bootstrap_resolvers":
+			configs.bootstrapResolvers = args
+			log.Info("[doing] bootstrap_resolvers is enabled")
+			break
+
 		case "intercept", "check":
 			var interceptQtype []string
 
@@ -165,22 +170,22 @@ func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 
 			inputString := strings.TrimSpace(args[0])
 			originStr := inputString
-			handleCacheData(inputString, configs.filter)
+			// handleCacheData(inputString, configs.filter)
 			configs.cacheDataPath = originStr
 			break
 
 		case "black_list":
 			inputString := strings.TrimSpace(args[0])
 			originStr := inputString
-			handleBlackRules(inputString, configs.filter)
+			// handleBlackRules(inputString, configs.filter)
 			configs.blackRules = append(configs.blackRules, originStr)
 			break
 
 		case "white_list":
 			inputString := strings.TrimSpace(args[0])
 			originStr := inputString
-			configs.wFilter = bloom.NewWithEstimates(100_000, 0.001)
-			handleWhiteRules(inputString, configs.wFilter)
+			// configs.wFilter = bloom.NewWithEstimates(100_000, 0.001)
+			// handleWhiteRules(inputString, configs.wFilter)
 			configs.whiteRules = append(configs.whiteRules, originStr)
 			break
 
@@ -205,6 +210,7 @@ func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 	}
 
 	runtimeConfig.Configs = configs
+	loadConfig(runtimeConfig)
 	return runtimeConfig, nil
 }
 
@@ -216,6 +222,29 @@ func handleCacheData(inputString string, filter *bloom.BloomFilter) {
 		return
 	}
 	log.Infof(loadLogFmt, "cache", filter.ApproximatedSize(), m.OutInput)
+}
+
+func handleCacheDataPlus(cfg *Configs, filter *bloom.BloomFilter) {
+	isOk := false
+	if cfg.bootstrapResolvers != nil {
+		m := loader.DetectMethods(cfg.cacheDataPath)
+		for _, resolver := range cfg.bootstrapResolvers {
+			m.SetupResolver(resolver)
+			err := m.LoadCache(filter)
+			if err != nil {
+				log.Warningf("handleCacheDataPlus with err: %s", err)
+				continue
+			} else {
+				isOk = true
+				log.Infof(loadLogFmt, "cache", filter.ApproximatedSize(), m.OutInput)
+				break
+			}
+		}
+	}
+
+	if !isOk {
+		handleCacheData(cfg.cacheDataPath, filter)
+	}
 }
 
 func handleBlackRules(inputString string, filter *bloom.BloomFilter) {
@@ -230,6 +259,34 @@ func handleBlackRules(inputString string, filter *bloom.BloomFilter) {
 
 	c, _ := addLines2filter(lines, filter)
 	log.Infof(loadLogFmt, "black-rules", c, m.OutInput)
+}
+
+func handleBlackRulesPlus(cfg *Configs, filter *bloom.BloomFilter) {
+	for _, rule := range cfg.blackRules {
+		isOk := false
+
+		if cfg.bootstrapResolvers != nil {
+			m := loader.DetectMethods(rule)
+			for _, resolver := range cfg.bootstrapResolvers {
+				m.SetupResolver(resolver)
+				lines, err := m.LoadRules(m.StrictMode)
+				if err != nil {
+					log.Warningf("handleBlackRulesPlus with err: %s", err)
+					continue
+				} else {
+					c, _ := addLines2filter(lines, filter)
+
+					isOk = true
+					log.Infof(loadLogFmt, "black-rules", c, m.OutInput)
+					break
+				}
+			}
+		}
+
+		if !isOk {
+			handleBlackRules(rule, filter)
+		}
+	}
 }
 
 func handleWhiteRules(inputString string, wFilter *bloom.BloomFilter) {
@@ -252,6 +309,39 @@ func handleWhiteRules(inputString string, wFilter *bloom.BloomFilter) {
 
 	c, _ := addLines2filter(parsers.LooseParser(lines, parsers.DomainParser, minLen), wFilter)
 	log.Infof(loadLogFmt, "white-rules", c, m.OutInput)
+}
+
+func handleWhiteRulesPlus(cfg *Configs, filter *bloom.BloomFilter) {
+	minLen := domainMinLength
+	for _, rule := range cfg.whiteRules {
+		isOk := false
+
+		if cfg.bootstrapResolvers != nil {
+			m := loader.DetectMethods(rule)
+			if m.IsRules {
+				minLen = 1
+			}
+
+			for _, resolver := range cfg.bootstrapResolvers {
+				m.SetupResolver(resolver)
+				lines, err := m.LoadRules(m.StrictMode)
+				if err != nil {
+					log.Warningf("handleWhiteRules with err: %s", err)
+					continue
+				} else {
+					c, _ := addLines2filter(parsers.LooseParser(lines, parsers.DomainParser, minLen), filter)
+
+					isOk = true
+					log.Infof(loadLogFmt, "white-rules", c, m.OutInput)
+					break
+				}
+			}
+		}
+
+		if !isOk {
+			handleWhiteRules(rule, filter)
+		}
+	}
 }
 
 /*

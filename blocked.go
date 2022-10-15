@@ -67,33 +67,35 @@ func (app Blocked) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 	}
 }
 
-func (app Blocked) reloadConfig() {
-	log.Infof("[reload]: %s", time.Now())
+func loadConfig(app Blocked) {
 	bFilter := bloom.NewWithEstimates(uint(app.Configs.Size), app.Configs.Rate)
+	wFilter := bloom.NewWithEstimates(100_000, 0.001)
+
 	if app.Configs.cacheDataPath != "" {
-		handleCacheData(app.Configs.cacheDataPath, bFilter)
+		handleCacheDataPlus(app.Configs, bFilter)
 	}
 
 	if len(app.Configs.blackRules) > 0 {
-		for _, rule := range app.Configs.blackRules {
-			handleBlackRules(rule, bFilter)
-		}
+		handleBlackRulesPlus(app.Configs, bFilter)
 	}
 
 	if len(app.Configs.whiteRules) > 0 {
-		wFilter := bloom.NewWithEstimates(100_000, 0.001)
-		for _, rule := range app.Configs.whiteRules {
-			handleWhiteRules(rule, wFilter)
-		}
-
-		app.Configs.Lock()
-		app.Configs.wFilter = wFilter
-		app.Configs.Unlock()
+		handleWhiteRulesPlus(app.Configs, wFilter)
 	}
 
 	app.Configs.Lock()
-	app.Configs.filter = bFilter
+	if len(app.Configs.blackRules) > 0 {
+		app.Configs.filter = bFilter
+	}
+	if len(app.Configs.whiteRules) > 0 {
+		app.Configs.wFilter = wFilter
+	}
 	app.Configs.Unlock()
+}
+
+func (app Blocked) reloadConfig() {
+	log.Infof("[reload]: %s", time.Now())
+	loadConfig(app)
 }
 
 func (app Blocked) Name() string { return pluginName }

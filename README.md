@@ -17,6 +17,8 @@ A coredns plugin to block domains/query.
     }
 
     blocked {
+        bootstrap_resolvers 223.5.5.5:53 114.114.114.114:53
+        
         intercept/check A AAAA HTTPS CNAME
     
         # to reload cache_data/black_list/white_list, default: 5days. 
