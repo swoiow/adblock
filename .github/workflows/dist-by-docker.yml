@@ -28,8 +28,11 @@ jobs:
       GET_GR: https://github.com/swoiow/ftw-ci/releases/download/bin/gr
       USR_BIN_PATH: ${{ github.workspace }}/.bin
       BUILD_PATH: ${{ github.workspace }}/.buildspace
+      BUILD_CACHE_PATH: ${{ github.workspace }}/.buildcache
       DIST_PATH: ${{ github.workspace }}/.dist
       WORKSHOP: ${{ secrets.WORKSHOP }}
+      
+      V_BUILD_CACHE_PATH: /mnt/go/.cache
 
     steps:
       - name: Checkout repo
@@ -67,6 +70,8 @@ jobs:
             -e GITHUB_SHA=$GITHUB_SHA \
             -e DIST_PATH=/dist \
             -e WORKSHOP=$WORKSHOP \
+            -e GOCACHE=$V_BUILD_CACHE_PATH \
+            -v $BUILD_CACHE_PATH:$V_BUILD_CACHE_PATH \
             -v ${PWD}:/dist \
             runtime \
             make build_arm
@@ -81,6 +86,8 @@ jobs:
             -e GITHUB_SHA=$GITHUB_SHA \
             -e DIST_PATH=/dist \
             -e WORKSHOP=$WORKSHOP \
+            -e GOCACHE=$V_BUILD_CACHE_PATH \
+            -v $BUILD_CACHE_PATH:$V_BUILD_CACHE_PATH \
             -v ${PWD}:/dist \
             runtime \
             make build_amd
@@ -95,6 +102,8 @@ jobs:
             -e GITHUB_SHA=$GITHUB_SHA \
             -e DIST_PATH=/dist \
             -e WORKSHOP=$WORKSHOP \
+            -e GOCACHE=$V_BUILD_CACHE_PATH \
+            -v $BUILD_CACHE_PATH:$V_BUILD_CACHE_PATH \
             -v ${PWD}:/dist \
             runtime \
             make build_win_x64
