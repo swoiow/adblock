@@ -53,6 +53,9 @@ func parseConfiguration(c *caddy.Controller) (Blocked, error) {
 
 		switch value {
 		case "bootstrap_resolvers":
+			if args == nil {
+				args = []string{"1.0.0.1:53", "8.8.4.4:53", "223.5.5.5:53", "119.29.29.29:53"}
+			}
 			configs.bootstrapResolvers = args
 			log.Info("[doing] bootstrap_resolvers is enabled")
 			break
