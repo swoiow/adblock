@@ -25,7 +25,7 @@ var chinaDomainList = []string{
 	"https://raw.githubusercontent.com/swoiow/app-domains/main/app-domains.txt",
 }
 
-func generateDAT(rules []string) {
+func generateDat(rules []string) {
 	filter := bloom.NewWithEstimates(uint(Size), Cap)
 
 	for _, rule := range rules {
@@ -135,7 +135,7 @@ func createRules(ruleUrls []string) []string {
 	return rules
 }
 
-func testDAT() {
+func verifyDat() {
 	counter := 0
 	bottle := bloom.NewWithEstimates(uint(Size), Cap)
 
@@ -164,9 +164,9 @@ func main() {
 	switch selected {
 	case 1:
 		data := createRules(chinaDomainList)
-		generateDAT(data)
+		generateDat(data)
 
 	default:
-		testDAT()
+		verifyDat()
 	}
 }
