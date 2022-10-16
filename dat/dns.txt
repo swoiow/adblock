@@ -4,6 +4,8 @@
 *.ctdns.cn
 *.c.cdnhwc1.com
 *.qiniudns.com
+*.alipaydns.com
+
 alidns.com
 dns.google
 doh.pub

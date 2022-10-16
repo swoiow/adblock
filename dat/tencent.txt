@@ -6,6 +6,8 @@
 *.qqlive.qq.com
 *.tdm.qq.com
 *.tfogc.com
+*.crashsight.qq.com
+*.crashsight.wetest.net
 anchorpost.msstatic.com
 apps.idata.qq.com
 cgi.connect.qq.com
