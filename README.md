@@ -17,9 +17,13 @@ A coredns plugin to block domains/query.
     }
 
     blocked {
+        bootstrap_resolvers 223.5.5.5:53 114.114.114.114:53
+        
+        intercept/check A AAAA HTTPS CNAME
+    
         # to reload cache_data/black_list/white_list, default: 5days. 
         # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
-        reload 86400s
+        interval/reload 86400s
         
         # bloom filter capacity & rate. default: 250_000 0.001
         size_rate 250_000 0.001
@@ -80,6 +84,11 @@ A coredns plugin to block domains/query.
   - `dnsmasq` - `DnsmasqParser`
   - `domain` - `DomainParser`
   - `abnf` - `ABNFParser`, 需要使用`abnf+`前缀指定解析器
++ 支持`bootstrap_resolvers`, 默认查询
+  - `1.0.0.1:53`
+  - `8.8.4.4:53`
+  - `223.5.5.5:53`
+  - `119.29.29.29:53`
 
 ## TODO
 
@@ -98,3 +107,4 @@ A coredns plugin to block domains/query.
 
 - [Wiki](https://github.com/swoiow/blocked/wiki/Changelog-&-Note)
 - [Example](https://github.com/swoiow/blocked/wiki/Sample)
+- [Best Practices](https://github.com/swoiow/blocked/wiki/Best_Practices)

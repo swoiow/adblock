@@ -7,20 +7,27 @@ WORKSHOP?=edition-
 PREFIX?=$(WORKSHOP)$(SHORT_SHA)
 SUFFIX?=,$(CURRENT_DATE)
 
+PLUGIN_BLOCKED_VER?=$(GITHUB_SHA)
+PLUGIN_TURNED_VER?=30f212c4ca70079f587c412589f6be9e5f0ac839
+
+
 version:
 	echo $(SHORT_SHA)
 	echo $(GITHUB_SHA)
 	echo $(PREFIX)$(SUFFIX)
 
 clean:
+	go clean -modcache
 	rm -rf .github/*.txt .github/rules/*.* .github/raw/*.* .build_space dist
 
 generate:
-	go get github.com/swoiow/blocked@$(GITHUB_SHA) && \
-	go get github.com/swoiow/turned@v0.0.4 && \
+	go clean -modcache
+	go get github.com/swoiow/blocked@$(PLUGIN_BLOCKED_VER) && \
+	go get github.com/swoiow/turned@$(PLUGIN_TURNED_VER) && \
 	go generate
 
 build-rules:
+	mkdir -p .github/rules
 	go run .github/etl.go
 	echo `date +%F`
 
@@ -42,8 +49,8 @@ build-bin:
 build-local-osx: clean build-image
 	docker run -it --rm -v `pwd`/.build_space:/build_space runtime cp -arf /app/ /build_space
 	cd .build_space/app && \
-		go get github.com/swoiow/blocked@$(GITHUB_SHA) && \
-		go get github.com/swoiow/turned@main && \
+		go get github.com/swoiow/blocked@$(PLUGIN_BLOCKED_VER) && \
+		go get github.com/swoiow/turned@$(PLUGIN_TURNED_VER) && \
 		go generate && \
 		GO111MODULE=auto \
 		CGO_ENABLED=0 \

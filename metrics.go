@@ -13,11 +13,11 @@ var (
 		Subsystem: pluginName,
 		Name:      "hinted_total",
 		Help:      "Counter hinted rules",
-	}, []string{"server"})
+	}, []string{"server", "type"})
 	missesCount = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: plugin.Namespace,
 		Subsystem: pluginName,
 		Name:      "misses_total",
 		Help:      "Counter not hinted rules",
-	}, []string{"server"})
+	}, []string{"server", "type"})
 )
