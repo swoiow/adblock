@@ -8,6 +8,7 @@ import (
 
 func CreateSOA(q dns.Question, r *dns.Msg) *dns.Msg {
 	/* https:github.com/DNSCrypt/dnscrypt-proxy/blob/master/dnscrypt-proxy/plugin_block_ipv6.go#L31
+	 * https://www.rfc-editor.org/rfc/rfc1034
 	 */
 
 	m := new(dns.Msg)
@@ -16,8 +17,8 @@ func CreateSOA(q dns.Question, r *dns.Msg) *dns.Msg {
 	m.RecursionAvailable = true
 
 	soa := new(dns.SOA)
-	soa.Mbox = "query.blocked."
-	soa.Ns = "a.root-servers.net."
+	soa.Mbox = "soa.dns.lan."
+	soa.Ns = "ns.dns.lan."
 	soa.Serial = 1
 	soa.Refresh = DAY
 	soa.Minttl = HOUR

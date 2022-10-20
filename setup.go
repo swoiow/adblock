@@ -44,8 +44,9 @@ func setup(c *caddy.Controller) error {
 		return err
 	}
 
+	// OnStartup
 	parseChan := periodicConfigUpdate(&app)
-
+	// OnShutdown
 	c.OnShutdown(func() error {
 		close(parseChan)
 		return nil
@@ -57,5 +58,6 @@ func setup(c *caddy.Controller) error {
 		return &app
 	})
 
+	fmt.Printf("\n")
 	return nil
 }

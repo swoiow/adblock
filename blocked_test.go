@@ -2,7 +2,6 @@ package blocked
 
 import (
 	"context"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -11,38 +10,6 @@ import (
 	"github.com/coredns/coredns/plugin/test"
 	"github.com/miekg/dns"
 )
-
-func TestGetWild(t *testing.T) {
-
-	tests := []struct {
-		qHost string
-		want  []string
-	}{
-		{
-			qHost: "example.cn",
-			want: []string{
-				"*.cn",
-			},
-		},
-		{
-			qHost: "a.b.c.d.example.com",
-			want: []string{
-				"*.com",
-				"*.example.com",
-				"*.d.example.com",
-				"*.c.d.example.com",
-				"*.b.c.d.example.com",
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run("", func(t *testing.T) {
-			if got := GetWild(tt.qHost); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetWild() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
 
 func TestBlackListOnly(t *testing.T) {
 	// arrange
@@ -259,4 +226,30 @@ func TestBlocked_ServeDNS_Hostname_query_IGNORE(t *testing.T) {
 	if !strings.Contains(err.Error(), "no next plugin found") {
 		t.Errorf("assert failed")
 	}
+}
+
+func TestBlocked_ServeDNS_HTTPS_CNAME_blocked_with_SOA(t *testing.T) {
+	rtc := NewConfigs()
+	rtc.interceptQtype[dns.TypeHTTPS] = true
+	rtc.interceptQtype[dns.TypeCNAME] = true
+	rtc.respFunc = CreateSOA
+	rtc.filter = bloom.NewWithEstimates(100, 0.01)
+	rtc.filter.AddString("example.com")
+	c := &Blocked{Configs: rtc}
+
+	for _, qt := range []uint16{dns.TypeHTTPS, dns.TypeCNAME} {
+		req := new(dns.Msg)
+		req.SetQuestion("example.com.", qt)
+		rec := dnstest.NewRecorder(&test.ResponseWriter{})
+		_, err := c.ServeDNS(context.TODO(), rec, req)
+
+		if err != nil {
+			t.Errorf("Expected no error, but got %q", err)
+		}
+
+		if rec.Msg.Ns[0].Header().Rrtype != dns.TypeSOA {
+			t.Errorf("assert failed")
+		}
+	}
+
 }

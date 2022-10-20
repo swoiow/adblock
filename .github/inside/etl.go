@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/bits-and-blooms/bloom/v3"
-	"github.com/swoiow/blocked"
-	"github.com/swoiow/blocked/parsers"
+	"github.com/swoiow/dns_utils/loader"
+	"github.com/swoiow/dns_utils/parsers"
 )
 
 const (
@@ -20,7 +20,12 @@ var (
 	Cap  = 0.001
 )
 
-func generateDAT(rules []string) {
+var chinaDomainList = []string{
+	"https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/direct-list.txt",
+	"https://raw.githubusercontent.com/swoiow/app-domains/main/app-domains.txt",
+}
+
+func generateDat(rules []string) {
 	filter := bloom.NewWithEstimates(uint(Size), Cap)
 
 	for _, rule := range rules {
@@ -61,7 +66,7 @@ func createRules(ruleUrls []string) []string {
 	ruleSet["*.cn"] = true
 
 	for _, ruleUrl := range ruleUrls {
-		lines, err := blocked.UrlToLines(ruleUrl)
+		lines, err := loader.UrlToLines(ruleUrl)
 		if err != nil {
 			panic(err)
 		}
@@ -130,13 +135,17 @@ func createRules(ruleUrls []string) []string {
 	return rules
 }
 
-func testDAT() {
+func verifyDat() {
 	counter := 0
 	bottle := bloom.NewWithEstimates(uint(Size), Cap)
 
-	blocked.LocalCacheLoader(rulesetData, bottle)
+	m := loader.DetectMethods(rulesetData)
+	err := m.LoadCache(bottle)
+	if err != nil {
+		panic(err)
+	}
 
-	lines, _ := blocked.FileToLines(rulesetPath)
+	lines, _ := loader.FileToLines(rulesetPath)
 
 	for _, line := range lines {
 		if bottle.TestString(line) {
@@ -154,13 +163,10 @@ func main() {
 
 	switch selected {
 	case 1:
-		data := createRules([]string{
-			"https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/direct-list.txt",
-			"https://raw.githubusercontent.com/swoiow/app-domains/main/app-domains.txt",
-		})
-		generateDAT(data)
+		data := createRules(chinaDomainList)
+		generateDat(data)
 
 	default:
-		testDAT()
+		verifyDat()
 	}
 }

@@ -7,7 +7,8 @@ import (
 	"testing"
 
 	"github.com/bits-and-blooms/bloom/v3"
-	"github.com/swoiow/blocked/parsers"
+	"github.com/swoiow/dns_utils/loader"
+	"github.com/swoiow/dns_utils/parsers"
 )
 
 const (
@@ -27,13 +28,17 @@ func TestCreateCache(t *testing.T) {
 	filter := bloom.NewWithEstimates(uint(defaultConfigs.Size), defaultConfigs.Rate)
 
 	for _, rule := range *rules {
-		_ = LocalRuleLoader(rule, filter, false)
+		m := loader.DetectMethods(rule)
+		lines, err := m.LoadRules(m.StrictMode)
+		if err != nil {
+			panic(err)
+		}
+		addLines2filter(lines, filter)
 	}
 
 	wFile, err := os.Create(rulesetData)
 	if err != nil {
-		log.Error(err)
-		os.Exit(1)
+		panic(err)
 	}
 	defer wFile.Close()
 
@@ -44,7 +49,8 @@ func TestCreateCache(t *testing.T) {
 func TestCacheByLocal(t *testing.T) {
 	filter := bloom.NewWithEstimates(uint(defaultConfigs.Size), defaultConfigs.Rate)
 
-	err := LocalCacheLoader(rulesetData, filter)
+	m := loader.DetectMethods(rulesetData)
+	err := m.LoadCache(filter)
 	if err != nil {
 		panic(err)
 	}
@@ -73,7 +79,8 @@ func TestCacheByLocal(t *testing.T) {
 func TestCacheByFile(t *testing.T) {
 	filter := bloom.NewWithEstimates(uint(defaultConfigs.Size), defaultConfigs.Rate)
 
-	err := LocalCacheLoader(rulesetData, filter)
+	m := loader.DetectMethods(rulesetData)
+	err := m.LoadCache(filter)
 	if err != nil {
 		panic(err)
 	}
@@ -82,8 +89,11 @@ func TestCacheByFile(t *testing.T) {
 		name   string
 		result bool
 	}
+
 	var items = []rule{}
-	lines, _ := FileToLines(rulesetPath)
+	m2 := loader.DetectMethods(rulesetPath)
+
+	lines, _ := m2.LoadRules(false)
 
 	for _, line := range lines {
 		result, domains := parsers.Parse(line, parsers.DomainParser)
